@@ -573,7 +573,7 @@ function setupOrderActions() {
 // بناء رابط التتبع (نفس موقع تطبيق الكابتن)
 function buildTrackUrl(orderId) {
   const base = window.location.href.replace(/\/[^\/]*$/, ''); // المجلد الحالي
-  return base + '/track.html?order=' + orderId;
+  return base + '/?order=' + orderId;
 }
 
 // فتح واتساب برسالة جاهزة فيها رابط التتبع
@@ -798,3 +798,4 @@ setInterval(() => { if (currentUser) renderAll(); }, 5000);
 </script>
 </body>
 </html>
+
