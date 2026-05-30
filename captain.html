@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f1115">
+<title>سرعة - تطبيق الكابتن</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Reem+Kufi:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f1115; --panel: #161922; --panel-2: #1d212c; --line: #262b38;
+  --text: #e8eaf0; --muted: #8a93a6; --accent: #2ecc71; --accent-2: #4ade80;
+  --success: #2ecc71; --danger: #ff4757; --info: #4dabf7; --warning: #ffc83d;
+  --role-color: #2ecc71;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Tajawal', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 80px; }
+.login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+  background-image: radial-gradient(circle at 20% 30%, rgba(46, 204, 113, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(74, 222, 128, 0.1) 0%, transparent 50%); }
+.login-card { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 30px 24px; max-width: 420px; width: 100%; }
+.login-logo { width: 70px; height: 70px; background: linear-gradient(135deg, var(--role-color), var(--accent-2)); border-radius: 18px;
+  display: grid; place-items: center; font-size: 34px; margin: 0 auto 18px; box-shadow: 0 10px 30px rgba(46, 204, 113, 0.4); }
+.login-title { text-align: center; font-family: 'Reem Kufi'; font-size: 24px; margin-bottom: 6px; }
+.login-subtitle { text-align: center; color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+.cloud-status { display: flex; align-items: center; gap: 6px; background: rgba(46, 204, 113, 0.1); border: 1px solid var(--success);
+  color: var(--success); padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; margin: 0 auto 16px; width: fit-content; }
+.role-badge-top { background: rgba(46, 204, 113, 0.15); border: 1px solid var(--role-color); color: var(--role-color);
+  padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; text-align: center; margin: 0 auto 18px; width: fit-content; }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: blink 1.5s infinite; display: inline-block; margin-left: 4px; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+header { background: linear-gradient(135deg, #1a1d28, #161922); border-bottom: 1px solid var(--line); padding: 12px 14px;
+  position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.header-logo { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+.header-logo-mark { width: 36px; height: 36px; background: linear-gradient(135deg, var(--role-color), var(--accent-2));
+  border-radius: 10px; display: grid; place-items: center; font-size: 17px; flex-shrink: 0; }
+.header-logo h1 { font-family: 'Reem Kufi'; font-size: 14px; }
+.header-logo p { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.logout-btn { background: var(--panel-2); border: 1px solid var(--line); color: var(--danger); padding: 6px 10px;
+  border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 700; }
+main { padding: 14px; max-width: 600px; margin: 0 auto; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+.card-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-family: 'Reem Kufi'; }
+.card-title .dot { width: 4px; height: 18px; background: var(--role-color); border-radius: 3px; }
+.form-group { margin-bottom: 12px; }
+.form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+.form-group input { width: 100%; padding: 11px 12px; background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 10px; color: var(--text); font-family: inherit; font-size: 14px; }
+.form-group input:focus { outline: none; border-color: var(--role-color); }
+.form-error { background: rgba(255, 71, 87, 0.1); border: 1px solid var(--danger); color: var(--danger);
+  padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 12px; }
+.btn { padding: 12px 18px; border: none; border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: 700;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(135deg, var(--role-color), var(--accent-2)); color: white; box-shadow: 0 4px 14px rgba(46, 204, 113, 0.25); }
+.btn-success { background: var(--success); color: white; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.stat-mini { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 6px; text-align: center; }
+.stat-mini-value { font-size: 18px; font-weight: 900; font-family: 'Reem Kufi'; color: var(--role-color); }
+.stat-mini-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.order-item { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+.order-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; gap: 8px; }
+.order-id { font-weight: 700; font-size: 13px; }
+.order-info { font-size: 12px; color: var(--muted); margin: 3px 0; line-height: 1.5; }
+.badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.badge-accepted { background: rgba(77, 171, 247, 0.15); color: var(--info); }
+.badge-pickup { background: rgba(255, 107, 61, 0.15); color: #ff6b3d; }
+.badge-delivering { background: rgba(255, 184, 77, 0.2); color: #ffb84d; }
+.badge-delivered { background: rgba(46, 204, 113, 0.15); color: var(--success); }
+
+/* INCOMING ORDER - the alarm */
+.incoming-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); z-index: 9999; display: none;
+  align-items: center; justify-content: center; padding: 14px; animation: flashBg 1s infinite alternate; backdrop-filter: blur(8px); }
+.incoming-overlay.show { display: flex; }
+@keyframes flashBg { from { background: rgba(0, 0, 0, 0.85); } to { background: rgba(46, 204, 113, 0.25); } }
+.incoming-modal { background: linear-gradient(135deg, #1a2e1f, var(--panel));
+  border: 3px solid var(--role-color); border-radius: 20px; padding: 20px; width: 100%; max-width: 440px;
+  max-height: 92vh; overflow-y: auto; box-shadow: 0 0 60px rgba(46, 204, 113, 0.6); animation: bounce 0.6s infinite alternate; }
+@keyframes bounce { from { transform: scale(1); } to { transform: scale(1.02); } }
+.incoming-bell { font-size: 48px; text-align: center; animation: ring 0.5s infinite alternate; }
+@keyframes ring { from { transform: rotate(-15deg); } to { transform: rotate(15deg); } }
+.incoming-modal h2 { text-align: center; font-family: 'Reem Kufi'; font-size: 21px; color: var(--role-color); margin: 8px 0 4px; }
+.incoming-modal > p { text-align: center; color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+.fee-highlight { background: linear-gradient(135deg, rgba(46, 204, 113, 0.2), rgba(74, 222, 128, 0.1));
+  border: 1px solid var(--role-color); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 14px; }
+.fee-amount { font-size: 26px; font-weight: 900; color: var(--role-color); font-family: 'Reem Kufi'; }
+.fee-label { font-size: 11px; color: var(--muted); }
+.order-detail-modal { background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 12px; margin-bottom: 14px; }
+.order-detail-row { display: flex; justify-content: space-between; padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08); gap: 8px; font-size: 13px; }
+.order-detail-row:last-child { border-bottom: none; }
+.order-detail-row > span:first-child { color: var(--muted); white-space: nowrap; }
+.order-detail-row > span:last-child { font-weight: 700; text-align: left; }
+.action-buttons { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+
+/* TRACKER */
+.tracker { display: flex; align-items: center; margin: 14px 0; position: relative; }
+.tracker-step { flex: 1; text-align: center; position: relative; z-index: 2; }
+.step-circle { width: 28px; height: 28px; border-radius: 50%; background: var(--panel); border: 2px solid var(--line);
+  margin: 0 auto 6px; display: grid; place-items: center; font-weight: 700; font-size: 11px; color: var(--muted); transition: all 0.3s; }
+.step-circle.done { background: var(--success); border-color: var(--success); color: white; }
+.step-circle.active { background: var(--role-color); border-color: var(--role-color); color: white;
+  box-shadow: 0 0 0 5px rgba(46, 204, 113, 0.2); animation: pulse-step 1.5s infinite; }
+@keyframes pulse-step { 0%, 100% { box-shadow: 0 0 0 5px rgba(46, 204, 113, 0.2); } 50% { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); } }
+.step-label { font-size: 10px; color: var(--muted); }
+.step-label.active { color: var(--text); font-weight: 700; }
+.tracker-line { position: absolute; top: 14px; right: 10%; left: 10%; height: 2px; background: var(--line); z-index: 1; }
+.tracker-line-fill { height: 100%; background: var(--success); transition: width 0.5s; }
+
+/* PHOTO */
+.photo-upload { margin: 12px 0; background: rgba(46, 204, 113, 0.08); border: 2px dashed var(--success);
+  border-radius: 12px; padding: 14px; text-align: center; }
+.photo-upload h4 { font-family: 'Reem Kufi'; color: var(--success); margin-bottom: 6px; font-size: 13px; }
+.photo-upload p { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+.photo-upload input[type="file"] { display: none; }
+.photo-upload label.upload-btn { display: inline-block; background: var(--success); color: white;
+  padding: 9px 16px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 13px; }
+
+/* CAPTAIN STATUS */
+.captain-card { background: linear-gradient(135deg, #1a3a2e, var(--panel)); border: 1px solid var(--line);
+  border-radius: 14px; padding: 12px; margin-bottom: 12px; display: flex; align-items: center;
+  justify-content: space-between; gap: 10px; }
+.status-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.status-avatar { width: 40px; height: 40px; background: linear-gradient(135deg, var(--role-color), var(--accent-2));
+  border-radius: 50%; display: grid; place-items: center; font-size: 18px; font-weight: 700; flex-shrink: 0; }
+.status-info h3 { font-size: 13px; font-weight: 700; font-family: 'Reem Kufi'; }
+.status-info p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.toggle { display: flex; align-items: center; gap: 6px; background: rgba(46, 204, 113, 0.15);
+  border: 1px solid var(--success); padding: 5px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; color: var(--success); flex-shrink: 0; cursor: pointer;
+  transition: all 0.2s; user-select: none; }
+.toggle.off { background: rgba(255, 71, 87, 0.12); border-color: var(--danger); color: var(--danger); }
+.toggle-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: blink 1.5s infinite; }
+.toggle.off .toggle-dot { background: var(--danger); animation: none; }
+.gps-indicator { background: rgba(77, 171, 247, 0.1); border: 1px solid rgba(77, 171, 247, 0.4);
+  color: var(--info); padding: 8px 12px; border-radius: 10px; font-size: 11px; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px; }
+.gps-indicator.error { background: rgba(255, 71, 87, 0.08); border-color: rgba(255, 71, 87, 0.3); color: var(--danger); }
+.gps-indicator.success { background: rgba(46, 204, 113, 0.08); border-color: rgba(46, 204, 113, 0.3); color: var(--success); }
+.gps-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: blink 1.5s infinite; }
+
+/* TOAST */
+.toast { position: fixed; bottom: 20px; left: 14px; right: 14px; background: var(--panel); border: 1px solid var(--success);
+  border-radius: 12px; padding: 11px 14px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 1000; transform: translateY(150px);
+  transition: transform 0.3s; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; }
+.toast.show { transform: translateY(0); }
+
+.ring-banner { background: linear-gradient(135deg, var(--role-color), var(--accent-2)); color: white; padding: 10px;
+  border-radius: 10px; margin-bottom: 12px; text-align: center; font-weight: 700; font-size: 12px;
+  display: none; animation: blink 1s infinite; }
+.ring-banner.show { display: block; }
+
+.empty { text-align: center; padding: 28px 14px; color: var(--muted); }
+.empty-icon { font-size: 38px; margin-bottom: 8px; opacity: 0.5; }
+.empty p { font-size: 13px; }
+
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-thumb { background: var(--line); }
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen" style="display:none;">
+  <div class="login-card">
+    <div class="login-logo">🛵</div>
+    <div class="login-title">منصة سرعة</div>
+    <div class="login-subtitle">تطبيق الكابتن</div>
+    <div class="cloud-status"><span class="sync-dot"></span><span>متصل بـ Firebase</span></div>
+    <div class="role-badge-top">🛵 دخول الكباتن فقط</div>
+    <div class="form-error" id="loginError" style="display:none;"></div>
+    <div class="form-group"><label>البريد الإلكتروني</label><input type="email" id="loginEmail" placeholder="captain@sora3a.com"></div>
+    <div class="form-group"><label>كلمة المرور</label><input type="password" id="loginPassword" placeholder="••••••••"></div>
+    <button class="btn btn-primary" id="loginBtn">🔐 دخول</button>
+    <p style="color: var(--muted); font-size: 11px; text-align: center; margin-top: 16px; line-height: 1.6;">
+      💡 المطعم يعطيك بيانات الدخول.<br>إذا ما عندك حساب، تواصل مع مطعمك.
+    </p>
+  </div>
+</div>
+
+<div id="appContainer" style="display:none;">
+<header>
+  <div class="header-logo">
+    <div class="header-logo-mark">🛵</div>
+    <div style="min-width: 0; flex: 1;">
+      <h1>تطبيق الكابتن <span class="sync-dot"></span></h1>
+      <p id="hSubtitle">—</p>
+    </div>
+  </div>
+  <button class="logout-btn" onclick="logout()">خروج</button>
+</header>
+
+<main>
+  <div class="captain-card">
+    <div class="status-left">
+      <div class="status-avatar" id="capAvatar">ك</div>
+      <div class="status-info">
+        <h3 id="capName">الكابتن</h3>
+        <p id="capInfo">🏍️ • ⭐ 5.0</p>
+      </div>
+    </div>
+    <div class="toggle" id="availToggle" onclick="toggleAvailability()">
+      <div class="toggle-dot"></div>
+      <span id="availText">متاح</span>
+    </div>
+  </div>
+
+  <div class="gps-indicator" id="gpsIndicator">
+    <div class="gps-dot"></div>
+    <span id="gpsText">جاري طلب إذن GPS...</span>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-mini"><div class="stat-mini-value" id="c-deliveries">0</div><div class="stat-mini-label">توصيلات</div></div>
+    <div class="stat-mini"><div class="stat-mini-value" id="c-earnings">0</div><div class="stat-mini-label">د.ع</div></div>
+    <div class="stat-mini"><div class="stat-mini-value" id="c-active">0</div><div class="stat-mini-label">نشطة</div></div>
+  </div>
+
+  <div class="ring-banner" id="ringBanner">🔔 الجرس مستمر... قم بقبول أو رفض الطلب</div>
+
+  <div class="card">
+    <div class="card-title"><span class="dot"></span> طلباتي النشطة</div>
+    <div id="captainOrders"></div>
+  </div>
+</main>
+</div>
+
+<div class="incoming-overlay" id="incomingOverlay">
+  <div class="incoming-modal">
+    <div class="incoming-bell">🔔</div>
+    <h2>طلب توصيل جديد!</h2>
+    <p id="incomingRestaurant">المطعم</p>
+    <div class="fee-highlight">
+      <div class="fee-amount" id="incomingFee">0</div>
+      <div class="fee-label">د.ع - أجور التوصيل</div>
+    </div>
+    <div class="order-detail-modal">
+      <div class="order-detail-row"><span>الطلب</span><span id="incomingOrderId">—</span></div>
+      <div class="order-detail-row"><span>الزبون</span><span id="incomingCustomer">—</span></div>
+      <div class="order-detail-row"><span>الهاتف</span><span id="incomingPhone">—</span></div>
+      <div class="order-detail-row"><span>العنوان</span><span id="incomingAddress">—</span></div>
+      <div class="order-detail-row"><span>التفاصيل</span><span id="incomingNotes">—</span></div>
+      <div class="order-detail-row"><span>قيمة الطلب</span><span id="incomingValue">—</span></div>
+    </div>
+    <div class="action-buttons">
+      <button class="btn btn-success" id="acceptBtn">✓ قبول</button>
+      <button class="btn btn-danger" id="rejectBtn">✗ رفض</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastIcon">✅</span><span id="toastText">تم</span></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { initializeAuth, browserLocalPersistence, indexedDBLocalPersistence,
+  signInWithEmailAndPassword, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc,
+  query, where, orderBy, onSnapshot, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDMqqb4XN25rAM5DBvSuDPjDN1dgcya-zA",
+  authDomain: "sora3a-delivery.firebaseapp.com",
+  projectId: "sora3a-delivery",
+  storageBucket: "sora3a-delivery.firebasestorage.app",
+  messagingSenderId: "774569904586",
+  appId: "1:774569904586:web:e0d2e20d8964e4d6656733"
+};
+
+// Named app "sora3a-captain" = isolated session (won't conflict with admin/restaurant)
+const app = initializeApp(firebaseConfig, "sora3a-captain");
+const auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] });
+const db = getFirestore(app);
+
+window.fb = { app, auth, db };
+window.fbFns = { signInWithEmailAndPassword, signOut, onAuthStateChanged,
+  collection, doc, setDoc, getDoc, getDocs, updateDoc, query, where, orderBy, onSnapshot, serverTimestamp };
+
+document.getElementById('loginScreen').style.display = 'flex';
+window.dispatchEvent(new Event('firebaseReady'));
+</script>
+
+<script>
+'use strict';
+let currentUser = null;
+let currentUserData = null;
+let unsubscribers = [];
+let cachedOrders = [];
+let gpsWatcher = null;
+let lastGpsUploadTime = 0;
+let audioCtx = null;
+let ringInterval = null;
+let isRinging = false;
+let currentRingingOrderId = null;
+
+window.addEventListener('firebaseReady', () => {
+  setupAuthListener();
+  setupLogin();
+  setupOrderActions();
+  setupRejectButton();
+});
+
+function fmt(n) { return Number(n || 0).toLocaleString('en-US'); }
+function nowTime() { const d = new Date(); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function statusBadge(status) {
+  const map = { accepted: { class: 'badge-accepted', text: '🔵 مقبول' }, pickup: { class: 'badge-pickup', text: '🟠 في المطعم' },
+    delivering: { class: 'badge-delivering', text: '🛵 يتوصل' }, delivered: { class: 'badge-delivered', text: '✅ مسلّم' } };
+  return `<span class="badge ${map[status].class}">${map[status].text}</span>`;
+}
+let toastTimeout;
+function showToast(text, icon = '✅') {
+  document.getElementById('toastText').textContent = text;
+  document.getElementById('toastIcon').textContent = icon;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function setupLogin() {
+  document.getElementById('loginBtn').addEventListener('click', login);
+  document.getElementById('loginPassword').addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
+}
+
+async function login() {
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value;
+  const errorEl = document.getElementById('loginError');
+  const loginBtn = document.getElementById('loginBtn');
+  if (!email || !password) { errorEl.textContent = 'أدخل الإيميل وكلمة المرور'; errorEl.style.display = 'block'; return; }
+  errorEl.style.display = 'none';
+  loginBtn.innerHTML = '<div class="spinner"></div>';
+  loginBtn.disabled = true;
+  try {
+    const cred = await window.fbFns.signInWithEmailAndPassword(window.fb.auth, email, password);
+    const userDoc = await window.fbFns.getDoc(window.fbFns.doc(window.fb.db, 'users', cred.user.uid));
+    if (!userDoc.exists()) throw new Error('بيانات المستخدم غير موجودة');
+    const userData = userDoc.data();
+    if (userData.role !== 'captain') {
+      await window.fbFns.signOut(window.fb.auth);
+      const roleAr = userData.role === 'admin' ? 'الإدارة' : 'المطعم';
+      throw new Error(`❌ هذا حساب ${roleAr}. استخدم التطبيق الصحيح`);
+    }
+    // Initialize audio context on user interaction
+    initAudio();
+  } catch (err) {
+    let msg = err.message;
+    if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') msg = '❌ بيانات الدخول غير صحيحة';
+    else if (err.code === 'auth/too-many-requests') msg = '⚠️ محاولات كثيرة، انتظر قليلاً';
+    errorEl.textContent = msg;
+    errorEl.style.display = 'block';
+    loginBtn.innerHTML = '🔐 دخول';
+    loginBtn.disabled = false;
+  }
+}
+
+function setupAuthListener() {
+  window.fbFns.onAuthStateChanged(window.fb.auth, async (user) => {
+    if (user) {
+      try {
+        const userDoc = await window.fbFns.getDoc(window.fbFns.doc(window.fb.db, 'users', user.uid));
+        if (!userDoc.exists()) { await window.fbFns.signOut(window.fb.auth); return; }
+        const userData = userDoc.data();
+        if (userData.role !== 'captain') {
+          await window.fbFns.signOut(window.fb.auth);
+          alert('❌ هذا الحساب ليس للكباتن. استخدم التطبيق الصحيح.');
+          return;
+        }
+        currentUser = { uid: user.uid, email: user.email, ...userData };
+        // Get captain data
+        const capSnap = await window.fbFns.getDocs(window.fbFns.query(
+          window.fbFns.collection(window.fb.db, 'captains'),
+          window.fbFns.where('userId', '==', currentUser.uid)
+        ));
+        if (!capSnap.empty) {
+          currentUserData = { id: capSnap.docs[0].id, ...capSnap.docs[0].data() };
+        }
+        await enterApp();
+      } catch (e) { console.error(e); await window.fbFns.signOut(window.fb.auth); }
+    } else {
+      currentUser = null;
+      currentUserData = null;
+      stopAllListeners();
+      stopGPSTracking();
+      stopRinging();
+      document.getElementById('appContainer').style.display = 'none';
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('loginBtn').innerHTML = '🔐 دخول';
+      document.getElementById('loginBtn').disabled = false;
+    }
+  });
+}
+
+window.logout = async function() {
+  if (!confirm('تسجيل الخروج؟')) return;
+  stopGPSTracking();
+  stopAllListeners();
+  await window.fbFns.signOut(window.fb.auth);
+};
+
+function stopAllListeners() { unsubscribers.forEach(u => u && u()); unsubscribers = []; }
+
+async function enterApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appContainer').style.display = 'block';
+  document.getElementById('hSubtitle').textContent = currentUser.name;
+  if (currentUserData) {
+    document.getElementById('capName').textContent = currentUserData.name;
+    document.getElementById('capAvatar').textContent = currentUserData.name.charAt(0);
+    document.getElementById('capInfo').textContent =
+      `${currentUserData.vehicle === 'سيارة' ? '🚗' : '🏍️'} ${currentUserData.vehicle} • ⭐ ${currentUserData.rating || 5.0}`;
+    updateAvailabilityUI();
+  }
+  setupRealtimeListeners();
+  startGPSTracking();
+}
+
+// ============ التوفر (متاح / غير متاح) ============
+function updateAvailabilityUI() {
+  const isAvail = currentUserData?.available !== false;
+  const toggle = document.getElementById('availToggle');
+  const text = document.getElementById('availText');
+  if (!toggle || !text) return;
+  toggle.classList.toggle('off', !isAvail);
+  text.textContent = isAvail ? 'متاح' : 'غير متاح';
+}
+
+window.toggleAvailability = async function() {
+  if (!currentUserData) return;
+  const willBeAvailable = currentUserData.available === false;
+  try {
+    await window.fbFns.updateDoc(window.fbFns.doc(window.fb.db, 'captains', currentUserData.id), {
+      available: willBeAvailable
+    });
+    currentUserData.available = willBeAvailable;
+    updateAvailabilityUI();
+    showToast(willBeAvailable ? '🟢 أنت متاح الآن' : '🔴 أصبحت غير متاح');
+  } catch (err) { alert('خطأ: ' + err.message); }
+};
+
+function setupRealtimeListeners() {
+  stopAllListeners();
+  if (!currentUserData) return;
+  unsubscribers.push(
+    window.fbFns.onSnapshot(window.fbFns.query(
+      window.fbFns.collection(window.fb.db, 'orders'),
+      window.fbFns.where('restaurantId', '==', currentUserData.restaurantId)
+    ), (snap) => {
+      cachedOrders = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a,b) => (b.createdAtMs||0) - (a.createdAtMs||0));
+      renderAll();
+      checkForNewOrders();
+    })
+  );
+}
+
+// AUDIO RINGTONE
+function initAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playRingTone() {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const tones = [
+    { freq: 880, start: 0, dur: 0.18 },
+    { freq: 1175, start: 0.2, dur: 0.18 },
+    { freq: 1480, start: 0.4, dur: 0.25 },
+  ];
+  tones.forEach(t => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.frequency.value = t.freq; osc.type = 'square';
+    gain.gain.setValueAtTime(0.0001, now + t.start);
+    gain.gain.exponentialRampToValueAtTime(0.18, now + t.start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + t.start + t.dur);
+    osc.start(now + t.start);
+    osc.stop(now + t.start + t.dur);
+  });
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 300]);
+}
+
+function startRinging(orderId) {
+  if (isRinging && currentRingingOrderId === orderId) return;
+  initAudio();
+  isRinging = true;
+  currentRingingOrderId = orderId;
+  document.getElementById('ringBanner').classList.add('show');
+  playRingTone();
+  ringInterval = setInterval(() => { if (isRinging) playRingTone(); }, 900);
+}
+
+function stopRinging() {
+  isRinging = false;
+  currentRingingOrderId = null;
+  if (ringInterval) { clearInterval(ringInterval); ringInterval = null; }
+  document.getElementById('ringBanner').classList.remove('show');
+  if (navigator.vibrate) navigator.vibrate(0);
+}
+
+document.addEventListener('touchstart', initAudio, { passive: true });
+document.addEventListener('click', initAudio);
+
+function checkForNewOrders() {
+  if (!currentUserData) return;
+  if (currentUserData.available === false) { if (isRinging) hideIncoming(); return; }
+  const pending = cachedOrders.find(o =>
+    o.status === 'pending' &&
+    !(o.rejectedBy || []).includes(currentUserData.id) &&
+    (o.captainId === currentUserData.id || !o.captainId)
+  );
+  if (pending) {
+    if (currentRingingOrderId !== pending.id) showIncoming(pending);
+  } else if (isRinging) {
+    hideIncoming();
+  }
+}
+
+function showIncoming(order) {
+  document.getElementById('incomingOrderId').textContent = order.id.substring(0,6).toUpperCase();
+  document.getElementById('incomingRestaurant').textContent = `من ${order.restaurantName}`;
+  document.getElementById('incomingCustomer').textContent = order.customer;
+  document.getElementById('incomingPhone').textContent = order.phone;
+  document.getElementById('incomingAddress').textContent = order.address;
+  document.getElementById('incomingNotes').textContent = order.notes;
+  document.getElementById('incomingValue').textContent = fmt(order.value) + ' د.ع';
+  document.getElementById('incomingFee').textContent = fmt(order.fee);
+  document.getElementById('incomingOverlay').classList.add('show');
+  document.getElementById('acceptBtn').dataset.orderId = order.id;
+  document.getElementById('rejectBtn').dataset.orderId = order.id;
+  startRinging(order.id);
+}
+
+function hideIncoming() {
+  document.getElementById('incomingOverlay').classList.remove('show');
+  stopRinging();
+}
+
+function setupOrderActions() {
+  document.getElementById('acceptBtn').addEventListener('click', async (e) => {
+    const id = e.currentTarget.dataset.orderId;
+    if (!currentUserData) return;
+    const o = cachedOrders.find(x => x.id === id);
+    if (!o) return;
+    try {
+      const newTimeline = [...(o.timeline || []), { status: 'accepted', time: nowTime(), text: 'قبل الكابتن ' + currentUserData.name }];
+      await window.fbFns.updateDoc(window.fbFns.doc(window.fb.db, 'orders', id), {
+        status: 'accepted',
+        captainId: currentUserData.id,
+        captainName: currentUserData.name,
+        acceptedAtMs: Date.now(),
+        timeline: newTimeline,
+      });
+      hideIncoming();
+      showToast(`✓ قبلت الطلب`);
+      // افتح واتساب برسالة تتبع جاهزة للزبون
+      sendTrackingWhatsApp(o);
+    } catch (err) { alert('خطأ: ' + err.message); }
+  });
+}
+
+// بناء رابط التتبع (نفس موقع تطبيق الكابتن)
+function buildTrackUrl(orderId) {
+  const base = window.location.href.replace(/\/[^\/]*$/, ''); // المجلد الحالي
+  return base + '/track.html?order=' + orderId;
+}
+
+// فتح واتساب برسالة جاهزة فيها رابط التتبع
+function sendTrackingWhatsApp(order) {
+  if (!order.phone) { showToast('⚠️ لا يوجد رقم للزبون', '⚠️'); return; }
+  // تنسيق الرقم لواتساب (العراق +964)
+  let phone = String(order.phone).replace(/[^0-9]/g, '');
+  if (phone.startsWith('00964')) phone = phone.slice(2);
+  else if (phone.startsWith('964')) { /* جاهز */ }
+  else if (phone.startsWith('0')) phone = '964' + phone.slice(1);
+  else if (phone.length === 10) phone = '964' + phone;
+
+  const trackUrl = buildTrackUrl(order.id);
+  const capName = currentUserData?.name || 'الكابتن';
+  const msg =
+    `مرحباً ${order.customer || ''} 👋\n` +
+    `أنا ${capName} كابتن التوصيل من ${order.restaurantName || 'المطعم'} 🛵\n` +
+    `استلمت طلبك وأنا في الطريق إليك.\n\n` +
+    `📍 تابع موقعي وحالة طلبك مباشرة من هنا:\n${trackUrl}\n\n` +
+    `منصة سرعة للتوصيل`;
+
+  const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  // افتح واتساب في نافذة جديدة
+  window.open(waUrl, '_blank');
+}
+
+function setupRejectButton() {
+  document.getElementById('rejectBtn').addEventListener('click', async (e) => {
+    const id = e.currentTarget.dataset.orderId;
+    if (!currentUserData) return;
+    const o = cachedOrders.find(x => x.id === id);
+    if (!o) return;
+    try {
+      const newRejected = [...(o.rejectedBy || []), currentUserData.id];
+      const newTimeline = [...(o.timeline || []), { status: 'pending', time: nowTime(), text: 'رفض الكابتن ' + currentUserData.name }];
+      await window.fbFns.updateDoc(window.fbFns.doc(window.fb.db, 'orders', id), {
+        rejectedBy: newRejected,
+        rejectNotice: { by: currentUserData.name, time: nowTime(), timestamp: Date.now(), seen: false },
+        timeline: newTimeline,
+      });
+      hideIncoming();
+      showToast('✗ رفضت', '❌');
+    } catch (err) { alert('خطأ: ' + err.message); }
+  });
+}
+
+window.orderAction = async function(orderId, action) {
+  const o = cachedOrders.find(x => x.id === orderId);
+  if (!o) return;
+  let updates = {};
+  if (action === 'pickup') {
+    updates = { status: 'pickup', pickupAtMs: Date.now(), timeline: [...(o.timeline || []), { status: 'pickup', time: nowTime(), text: 'وصل المطعم' }] };
+    showToast('📍 وصلت المطعم');
+  } else if (action === 'deliver') {
+    updates = { status: 'delivering', deliveringAtMs: Date.now(), timeline: [...(o.timeline || []), { status: 'delivering', time: nowTime(), text: 'متجه للزبون' }] };
+    showToast('🛵 متجه للزبون');
+  }
+  try { await window.fbFns.updateDoc(window.fbFns.doc(window.fb.db, 'orders', orderId), updates); }
+  catch (err) { alert('خطأ: ' + err.message); }
+};
+
+window.handlePhotoUpload = function(orderId, fileInput) {
+  const file = fileInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxWidth = 800;
+      const scale = Math.min(1, maxWidth / img.width);
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const compressed = canvas.toDataURL('image/jpeg', 0.7);
+      window['_img_' + orderId] = compressed;
+      renderAll();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.retakePhoto = function(orderId) {
+  delete window['_img_' + orderId];
+  renderAll();
+};
+
+window.confirmDelivery = async function(orderId) {
+  const o = cachedOrders.find(x => x.id === orderId);
+  if (!o) return;
+  const img = window['_img_' + orderId];
+  if (!img) { alert('التقط صورة أولاً'); return; }
+  if (!confirm('تأكيد إتمام الطلب؟')) return;
+  try {
+    await window.fbFns.updateDoc(window.fbFns.doc(window.fb.db, 'orders', orderId), {
+      status: 'delivered',
+      deliveryProof: { image: img, time: nowTime(), timestamp: Date.now(), capturedBy: currentUserData?.name || 'الكابتن' },
+      deliveredAt: nowTime(),
+      deliveredAtMs: Date.now(),
+      timeline: [...(o.timeline || []), { status: 'delivered', time: nowTime(), text: '✅ تم التسليم بصورة' }]
+    });
+    delete window['_img_' + orderId];
+    showToast(`✅ أتممت الطلب +${fmt(o.fee)} د.ع`);
+  } catch (err) { alert('خطأ: ' + err.message); }
+};
+
+// GPS TRACKING
+function startGPSTracking() {
+  if (!currentUserData) return;
+  if (!navigator.geolocation) {
+    document.getElementById('gpsIndicator').classList.add('error');
+    document.getElementById('gpsText').textContent = '❌ المتصفح لا يدعم GPS';
+    return;
+  }
+  document.getElementById('gpsText').textContent = '⏳ جاري طلب إذن GPS...';
+  gpsWatcher = navigator.geolocation.watchPosition(
+    async (pos) => {
+      const now = Date.now();
+      if (now - lastGpsUploadTime < 5000) {
+        document.getElementById('gpsIndicator').classList.add('success');
+        document.getElementById('gpsText').innerHTML = `✓ GPS نشط - الدقة ${Math.round(pos.coords.accuracy)}م`;
+        return;
+      }
+      lastGpsUploadTime = now;
+      try {
+        await window.fbFns.setDoc(window.fbFns.doc(window.fb.db, 'captainLocations', currentUserData.id), {
+          captainId: currentUserData.id,
+          captainName: currentUserData.name,
+          restaurantId: currentUserData.restaurantId,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          timestamp: now
+        });
+        document.getElementById('gpsIndicator').classList.remove('error');
+        document.getElementById('gpsIndicator').classList.add('success');
+        document.getElementById('gpsText').innerHTML = `✓ GPS نشط ومتزامن - الدقة ${Math.round(pos.coords.accuracy)}م`;
+      } catch (err) { console.error('GPS upload error:', err); }
+    },
+    (err) => {
+      document.getElementById('gpsIndicator').classList.add('error');
+      let msg = 'تعذر تحديد الموقع';
+      if (err.code === 1) msg = '❌ يرجى السماح بإذن الموقع';
+      else if (err.code === 2) msg = '⚠️ GPS غير متاح';
+      else if (err.code === 3) msg = '⚠️ انتهت مهلة GPS';
+      document.getElementById('gpsText').textContent = msg;
+    },
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+  );
+}
+
+function stopGPSTracking() {
+  if (gpsWatcher !== null) {
+    navigator.geolocation.clearWatch(gpsWatcher);
+    gpsWatcher = null;
+  }
+}
+
+function renderAll() {
+  if (!currentUser || !currentUserData) return;
+  const mine = cachedOrders.filter(o => o.captainId === currentUserData.id && ['accepted','pickup','delivering'].includes(o.status));
+  const delivered = cachedOrders.filter(o => o.captainId === currentUserData.id && o.status === 'delivered');
+  const earnings = delivered.reduce((s,o) => s + (o.fee||0), 0);
+  document.getElementById('c-deliveries').textContent = delivered.length;
+  document.getElementById('c-earnings').textContent = fmt(earnings);
+  document.getElementById('c-active').textContent = mine.length;
+
+  const list = document.getElementById('captainOrders');
+  if (mine.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">🛵</div><p>لا توجد طلبات نشطة<br><small>في انتظار طلبات جديدة...</small></p></div>';
+    return;
+  }
+  list.innerHTML = mine.map(o => {
+    let nextAction = '';
+    let photoBox = '';
+    if (o.status === 'accepted') {
+      nextAction = `<button class="btn btn-primary" onclick="orderAction('${o.id}', 'pickup')">📍 وصلت المطعم</button>`;
+    } else if (o.status === 'pickup') {
+      nextAction = `<button class="btn btn-primary" onclick="orderAction('${o.id}', 'deliver')">🛵 متجه للزبون</button>`;
+    } else if (o.status === 'delivering') {
+      const hasPhoto = !!window['_img_' + o.id];
+      if (!hasPhoto) {
+        photoBox = `<div class="photo-upload">
+          <h4>📸 الخطوة 1: التقاط صورة</h4>
+          <p>التقط صورة للطلب عند التسليم</p>
+          <input type="file" accept="image/*" capture="environment" id="file-${o.id}" onchange="handlePhotoUpload('${o.id}', this)">
+          <label for="file-${o.id}" class="upload-btn">📷 التقاط صورة</label>
+        </div>`;
+      } else {
+        photoBox = `<div class="photo-upload" style="background: rgba(46,204,113,0.12); border-color: var(--success);">
+          <h4>✓ تم التقاط الصورة</h4>
+          <img src="${window['_img_' + o.id]}" style="max-width:100%; max-height:200px; border-radius:10px; margin:10px 0;">
+          <button class="btn btn-ghost" onclick="retakePhoto('${o.id}')" style="margin-bottom:8px;">🔄 إعادة الالتقاط</button>
+        </div>`;
+        nextAction = `<button class="btn btn-success" onclick="confirmDelivery('${o.id}')">✅ إتمام الطلب</button>`;
+      }
+    }
+    const steps = ['accepted','pickup','delivering','delivered'];
+    const labels = ['مقبول','استلام','توصيل','سُلّم'];
+    const idx = steps.indexOf(o.status);
+    const tracker = `<div class="tracker">
+      <div class="tracker-line"><div class="tracker-line-fill" style="width:${idx >= 0 ? (idx/(steps.length-1))*100 : 0}%"></div></div>
+      ${steps.map((s,i) => {
+        const cls = i < idx ? 'done' : (i === idx ? 'active' : '');
+        return `<div class="tracker-step"><div class="step-circle ${cls}">${i < idx ? '✓' : i+1}</div>
+          <div class="step-label ${cls ? 'active' : ''}">${labels[i]}</div></div>`;
+      }).join('')}</div>`;
+    return `<div class="order-item" style="border-color: var(--role-color)">
+      <div class="order-row"><span class="order-id">${o.id.substring(0,6).toUpperCase()}</span>${statusBadge(o.status)}</div>
+      <div class="order-info">🏪 ${o.restaurantName}</div>
+      <div class="order-info">👤 ${o.customer} • <a href="tel:${o.phone}" style="color:var(--role-color)">${o.phone}</a></div>
+      <div class="order-info">📍 ${o.address}</div>
+      <div class="order-info">🍔 ${o.notes}</div>
+      <div class="order-info">💰 <strong style="color:var(--role-color)">${fmt(o.fee)} د.ع</strong></div>
+      ${tracker}${photoBox}${nextAction ? `<div style="margin-top:8px">${nextAction}</div>` : ''}</div>`;
+  }).join('');
+}
+
+setInterval(() => { if (currentUser) renderAll(); }, 5000);
+</script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>تتبع طلبك - سرعة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Reem+Kufi:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root {
+  --bg: #0f1115; --panel: #181b22; --panel-2: #1f232c; --line: #2a2f3a;
+  --text: #e8eaf0; --muted: #8a93a6; --accent: #2ecc71; --accent-2: #27ae60;
+  --info: #4dabf7; --warning: #ffb84d; --danger: #ff4757; --success: #2ecc71;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Tajawal', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.header { background: var(--panel); padding: 16px; text-align: center; border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 1000; }
+.header .logo { font-size: 28px; }
+.header h1 { font-family: 'Reem Kufi'; font-size: 18px; margin-top: 4px; }
+.header p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.container { padding: 14px; max-width: 600px; margin: 0 auto; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+.card-title { font-family: 'Reem Kufi'; font-size: 15px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+#map { height: 320px; border-radius: 14px; border: 1px solid var(--line); margin-bottom: 14px; }
+.captain-marker { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border: 3px solid white;
+  border-radius: 50%; width: 42px !important; height: 42px !important; display: flex !important; align-items: center;
+  justify-content: center; font-size: 22px; box-shadow: 0 3px 12px rgba(0,0,0,0.5); }
+.tracker { display: flex; justify-content: space-between; position: relative; margin: 20px 0 10px; }
+.tracker-line { position: absolute; top: 18px; right: 10%; left: 10%; height: 3px; background: var(--line); z-index: 0; }
+.tracker-line-fill { height: 100%; background: var(--accent); transition: width 0.5s; }
+.tracker-step { display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 1; flex: 1; }
+.step-circle { width: 38px; height: 38px; border-radius: 50%; background: var(--panel-2); border: 2px solid var(--line);
+  display: grid; place-items: center; font-size: 16px; font-weight: 700; }
+.step-circle.done { background: var(--accent); border-color: var(--accent); color: #fff; }
+.step-circle.active { background: var(--accent); border-color: var(--accent); color: #fff;
+  box-shadow: 0 0 0 5px rgba(46,204,113,0.2); animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 5px rgba(46,204,113,0.2); } 50% { box-shadow: 0 0 0 10px rgba(46,204,113,0); } }
+.step-label { font-size: 11px; color: var(--muted); font-weight: 700; }
+.step-label.active { color: var(--accent); }
+.info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.info-row:last-child { border-bottom: none; }
+.info-row .label { color: var(--muted); }
+.info-row .value { font-weight: 700; }
+.status-badge { display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 700; }
+.badge-pending { background: rgba(255,184,77,0.15); color: var(--warning); }
+.badge-accepted { background: rgba(77,171,247,0.15); color: var(--info); }
+.badge-pickup { background: rgba(255,107,61,0.15); color: #ff6b3d; }
+.badge-delivering { background: rgba(46,204,113,0.15); color: var(--accent); }
+.badge-delivered { background: rgba(46,204,113,0.2); color: var(--success); }
+.badge-cancelled { background: rgba(255,71,87,0.15); color: var(--danger); }
+.center-msg { text-align: center; padding: 60px 20px; color: var(--muted); }
+.center-msg .icon { font-size: 56px; margin-bottom: 16px; }
+.center-msg h2 { font-family: 'Reem Kufi'; font-size: 18px; color: var(--text); margin-bottom: 8px; }
+.call-btn { display: block; background: var(--accent); color: #fff; text-align: center; padding: 13px;
+  border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 15px; margin-top: 10px; }
+.live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+  animation: blink 1.2s infinite; margin-left: 4px; }
+@keyframes blink { 50% { opacity: 0.3; } }
+.offline-note { font-size: 11px; color: var(--warning); text-align: center; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">🛵</div>
+  <h1>تتبع طلبك</h1>
+  <p>منصة سرعة للتوصيل</p>
+</div>
+
+<div class="container" id="container">
+  <div class="center-msg" id="loadingMsg">
+    <div class="icon">⏳</div>
+    <h2>جاري تحميل بيانات الطلب...</h2>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, onSnapshot }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDMqqb4XN25rAM5DBvSuDPjDN1dgcya-zA",
+  authDomain: "sora3a-delivery.firebaseapp.com",
+  projectId: "sora3a-delivery",
+  storageBucket: "sora3a-delivery.firebasestorage.app",
+  messagingSenderId: "774569904586",
+  appId: "1:774569904586:web:e0d2e20d8964e4d6656733"
+};
+
+const app = initializeApp(firebaseConfig, "sora3a-track");
+const db = getFirestore(app);
+
+const params = new URLSearchParams(window.location.search);
+const orderId = params.get('order');
+
+let map = null, captainMarker = null, mapInit = false;
+
+const statusMap = {
+  pending: { class: 'badge-pending', text: '🟡 بانتظار قبول الكابتن', idx: -1 },
+  accepted: { class: 'badge-accepted', text: '🔵 قبل الكابتن طلبك', idx: 0 },
+  pickup: { class: 'badge-pickup', text: '🟠 الكابتن في المطعم', idx: 1 },
+  delivering: { class: 'badge-delivering', text: '🛵 الكابتن في الطريق إليك', idx: 2 },
+  delivered: { class: 'badge-delivered', text: '✅ تم تسليم طلبك', idx: 3 },
+  cancelled: { class: 'badge-cancelled', text: '❌ أُلغي الطلب', idx: -1 }
+};
+
+function fmt(n) { return Number(n || 0).toLocaleString('en-US'); }
+
+function showError(msg) {
+  document.getElementById('container').innerHTML = `
+    <div class="center-msg">
+      <div class="icon">❓</div>
+      <h2>${msg}</h2>
+      <p>تأكد من الرابط أو تواصل مع المطعم</p>
+    </div>`;
+}
+
+if (!orderId) {
+  showError('رابط غير صالح');
+} else {
+  onSnapshot(doc(db, 'orders', orderId), (snap) => {
+    if (!snap.exists()) { showError('الطلب غير موجود'); return; }
+    renderOrder({ id: snap.id, ...snap.data() });
+  }, (err) => {
+    showError('تعذّر تحميل الطلب');
+  });
+}
+
+let captainUnsub = null;
+let trackedCaptainId = null;
+
+function renderOrder(o) {
+  const st = statusMap[o.status] || statusMap.pending;
+  const steps = ['مقبول', 'في المطعم', 'في الطريق', 'تم التسليم'];
+
+  let html = '';
+
+  // الخريطة تظهر فقط أثناء التوصيل
+  const showMap = ['accepted','pickup','delivering'].includes(o.status) && o.captainId;
+
+  html += `<div class="card">
+    <div style="text-align:center; margin-bottom:6px;">
+      <span class="status-badge ${st.class}">${st.text}</span>
+    </div>`;
+
+  if (o.status !== 'cancelled') {
+    const pct = st.idx >= 0 ? (st.idx / (steps.length - 1)) * 100 : 0;
+    html += `<div class="tracker">
+      <div class="tracker-line"><div class="tracker-line-fill" style="width:${pct}%"></div></div>
+      ${steps.map((s, i) => {
+        const cls = i < st.idx ? 'done' : (i === st.idx ? 'active' : '');
+        return `<div class="tracker-step">
+          <div class="step-circle ${cls}">${i < st.idx ? '✓' : i+1}</div>
+          <div class="step-label ${cls ? 'active' : ''}">${s}</div></div>`;
+      }).join('')}
+    </div>`;
+  }
+  html += `</div>`;
+
+  if (showMap) {
+    html += `<div id="map"></div>`;
+  }
+
+  // تفاصيل الطلب
+  html += `<div class="card">
+    <div class="card-title">📋 تفاصيل الطلب</div>
+    <div class="info-row"><span class="label">رقم الطلب</span><span class="value">${o.id.substring(0,6).toUpperCase()}</span></div>
+    <div class="info-row"><span class="label">المطعم</span><span class="value">${o.restaurantName || '—'}</span></div>
+    ${o.captainName ? `<div class="info-row"><span class="label">الكابتن 🛵</span><span class="value">${o.captainName}</span></div>` : ''}
+    <div class="info-row"><span class="label">قيمة الطلب</span><span class="value">${fmt(o.value)} د.ع</span></div>
+    <div class="info-row"><span class="label">التوصيل</span><span class="value">${fmt(o.fee)} د.ع</span></div>
+    <div class="info-row"><span class="label">الإجمالي</span><span class="value" style="color:var(--accent)">${fmt((o.value||0)+(o.fee||0))} د.ع</span></div>
+  </div>`;
+
+  document.getElementById('container').innerHTML = html;
+
+  // تهيئة الخريطة وتتبع الكابتن
+  if (showMap) {
+    setupMap();
+    if (trackedCaptainId !== o.captainId) {
+      if (captainUnsub) captainUnsub();
+      trackedCaptainId = o.captainId;
+      captainUnsub = onSnapshot(doc(db, 'captainLocations', o.captainId), (locSnap) => {
+        if (locSnap.exists()) {
+          const loc = locSnap.data();
+          updateCaptainOnMap(loc.lat, loc.lng, loc.timestamp);
+        }
+      });
+    }
+  }
+}
+
+function setupMap() {
+  if (mapInit && map) { setTimeout(() => map.invalidateSize(), 100); return; }
+  const el = document.getElementById('map');
+  if (!el) return;
+  map = L.map('map').setView([33.3152, 44.3661], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap', maxZoom: 19
+  }).addTo(map);
+  mapInit = true;
+  setTimeout(() => map.invalidateSize(), 200);
+}
+
+function updateCaptainOnMap(lat, lng, timestamp) {
+  if (!map) return;
+  const isStale = timestamp && (Date.now() - timestamp > 60000);
+  const icon = L.divIcon({
+    html: `<div class="captain-marker">🛵</div>`,
+    className: '', iconSize: [42, 42], iconAnchor: [21, 21]
+  });
+  if (!captainMarker) {
+    captainMarker = L.marker([lat, lng], { icon }).addTo(map);
+    map.setView([lat, lng], 15);
+  } else {
+    captainMarker.setLatLng([lat, lng]);
+  }
+  captainMarker.bindPopup(isStale ? '⚠️ آخر موقع معروف' : '🛵 موقع الكابتن الآن');
+}
+</script>
+</body>
+</html>
