@@ -57,6 +57,7 @@ main { padding: 14px; max-width: 600px; margin: 0 auto; }
 .btn-success { background: var(--success); color: white; }
 .btn-danger { background: var(--danger); color: white; }
 .btn-ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+.btn-whatsapp { background: #25D366; color: white; }
 .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
 .stat-mini { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 6px; text-align: center; }
 .stat-mini-value { font-size: 18px; font-weight: 900; font-family: 'Reem Kufi'; color: var(--role-color); }
@@ -71,7 +72,7 @@ main { padding: 14px; max-width: 600px; margin: 0 auto; }
 .badge-delivering { background: rgba(255, 184, 77, 0.2); color: #ffb84d; }
 .badge-delivered { background: rgba(46, 204, 113, 0.15); color: var(--success); }
 
-/* INCOMING ORDER - the alarm */
+/* INCOMING ORDER */
 .incoming-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); z-index: 9999; display: none;
   align-items: center; justify-content: center; padding: 14px; animation: flashBg 1s infinite alternate; backdrop-filter: blur(8px); }
 .incoming-overlay.show { display: flex; }
@@ -95,6 +96,23 @@ main { padding: 14px; max-width: 600px; margin: 0 auto; }
 .order-detail-row > span:first-child { color: var(--muted); white-space: nowrap; }
 .order-detail-row > span:last-child { font-weight: 700; text-align: left; }
 .action-buttons { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+
+/* WHATSAPP POPUP */
+.wa-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000;
+  display: none; align-items: center; justify-content: center; padding: 20px; }
+.wa-overlay.show { display: flex; }
+.wa-modal { background: var(--panel); border: 2px solid #25D366; border-radius: 20px;
+  padding: 22px 18px; width: 100%; max-width: 380px; }
+.wa-modal-title { font-size: 18px; font-weight: 900; color: #25D366; text-align: center; margin-bottom: 6px; }
+.wa-modal-sub { font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 16px; }
+.wa-msg-box { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px; font-size: 12px; line-height: 1.8; color: var(--text); margin-bottom: 14px;
+  max-height: 160px; overflow-y: auto; white-space: pre-wrap; direction: rtl; }
+.wa-btn-row { display: flex; gap: 8px; }
+.wa-send-btn { flex: 2; padding: 13px; border-radius: 12px; border: none; background: #25D366;
+  color: white; font-family: 'Tajawal', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; }
+.wa-skip-btn { flex: 1; padding: 13px; border-radius: 12px; border: 1px solid var(--line);
+  background: transparent; color: var(--muted); font-family: 'Tajawal', sans-serif; font-size: 13px; cursor: pointer; }
 
 /* TRACKER */
 .tracker { display: flex; align-items: center; margin: 14px 0; position: relative; }
@@ -141,22 +159,17 @@ main { padding: 14px; max-width: 600px; margin: 0 auto; }
 .gps-indicator.error { background: rgba(255, 71, 87, 0.08); border-color: rgba(255, 71, 87, 0.3); color: var(--danger); }
 .gps-indicator.success { background: rgba(46, 204, 113, 0.08); border-color: rgba(46, 204, 113, 0.3); color: var(--success); }
 .gps-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: blink 1.5s infinite; }
-
-/* TOAST */
 .toast { position: fixed; bottom: 20px; left: 14px; right: 14px; background: var(--panel); border: 1px solid var(--success);
   border-radius: 12px; padding: 11px 14px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 1000; transform: translateY(150px);
   transition: transform 0.3s; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; }
 .toast.show { transform: translateY(0); }
-
 .ring-banner { background: linear-gradient(135deg, var(--role-color), var(--accent-2)); color: white; padding: 10px;
   border-radius: 10px; margin-bottom: 12px; text-align: center; font-weight: 700; font-size: 12px;
   display: none; animation: blink 1s infinite; }
 .ring-banner.show { display: block; }
-
 .empty { text-align: center; padding: 28px 14px; color: var(--muted); }
 .empty-icon { font-size: 38px; margin-bottom: 8px; opacity: 0.5; }
 .empty p { font-size: 13px; }
-
 .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -178,7 +191,7 @@ main { padding: 14px; max-width: 600px; margin: 0 auto; }
     <div class="form-group"><label>كلمة المرور</label><input type="password" id="loginPassword" placeholder="••••••••"></div>
     <button class="btn btn-primary" id="loginBtn">🔐 دخول</button>
     <p style="color: var(--muted); font-size: 11px; text-align: center; margin-top: 16px; line-height: 1.6;">
-      💡 المطعم يعطيك بيانات الدخول.<br>إذا ما عندك حساب، تواصل مع مطعمك.
+      💡 المطعم يعطيك بيانات الدخول.
     </p>
   </div>
 </div>
@@ -230,6 +243,7 @@ main { padding: 14px; max-width: 600px; margin: 0 auto; }
 </main>
 </div>
 
+<!-- INCOMING ORDER MODAL -->
 <div class="incoming-overlay" id="incomingOverlay">
   <div class="incoming-modal">
     <div class="incoming-bell">🔔</div>
@@ -254,6 +268,20 @@ main { padding: 14px; max-width: 600px; margin: 0 auto; }
   </div>
 </div>
 
+<!-- WHATSAPP POPUP -->
+<div class="wa-overlay" id="waOverlay">
+  <div class="wa-modal">
+    <div style="font-size:36px;text-align:center;margin-bottom:8px;">📱</div>
+    <div class="wa-modal-title">رسالة واتساب للزبون</div>
+    <div class="wa-modal-sub">أرسل للزبون رابط تتبع طلبه</div>
+    <div class="wa-msg-box" id="waMsgPreview"></div>
+    <div class="wa-btn-row">
+      <button class="wa-send-btn" id="waSendBtn">📲 إرسال عبر واتساب</button>
+      <button class="wa-skip-btn" id="waSkipBtn">تخطي</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"><span id="toastIcon">✅</span><span id="toastText">تم</span></div>
 
 <script type="module">
@@ -274,7 +302,6 @@ const firebaseConfig = {
   appId: "1:774569904586:web:e0d2e20d8964e4d6656733"
 };
 
-// Named app "sora3a-captain" = isolated session (won't conflict with admin/restaurant)
 const app = initializeApp(firebaseConfig, "sora3a-captain");
 const auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] });
 const db = getFirestore(app);
@@ -299,12 +326,14 @@ let audioCtx = null;
 let ringInterval = null;
 let isRinging = false;
 let currentRingingOrderId = null;
+let pendingWaOrder = null;
 
 window.addEventListener('firebaseReady', () => {
   setupAuthListener();
   setupLogin();
   setupOrderActions();
   setupRejectButton();
+  setupWaButtons();
 });
 
 function fmt(n) { return Number(n || 0).toLocaleString('en-US'); }
@@ -324,6 +353,7 @@ function showToast(text, icon = '✅') {
   toastTimeout = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
+// ── LOGIN ──
 function setupLogin() {
   document.getElementById('loginBtn').addEventListener('click', login);
   document.getElementById('loginPassword').addEventListener('keypress', (e) => { if (e.key === 'Enter') login(); });
@@ -348,7 +378,6 @@ async function login() {
       const roleAr = userData.role === 'admin' ? 'الإدارة' : 'المطعم';
       throw new Error(`❌ هذا حساب ${roleAr}. استخدم التطبيق الصحيح`);
     }
-    // Initialize audio context on user interaction
     initAudio();
   } catch (err) {
     let msg = err.message;
@@ -374,7 +403,6 @@ function setupAuthListener() {
           return;
         }
         currentUser = { uid: user.uid, email: user.email, ...userData };
-        // Get captain data
         const capSnap = await window.fbFns.getDocs(window.fbFns.query(
           window.fbFns.collection(window.fb.db, 'captains'),
           window.fbFns.where('userId', '==', currentUser.uid)
@@ -385,11 +413,8 @@ function setupAuthListener() {
         await enterApp();
       } catch (e) { console.error(e); await window.fbFns.signOut(window.fb.auth); }
     } else {
-      currentUser = null;
-      currentUserData = null;
-      stopAllListeners();
-      stopGPSTracking();
-      stopRinging();
+      currentUser = null; currentUserData = null;
+      stopAllListeners(); stopGPSTracking(); stopRinging();
       document.getElementById('appContainer').style.display = 'none';
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('loginBtn').innerHTML = '🔐 دخول';
@@ -400,8 +425,7 @@ function setupAuthListener() {
 
 window.logout = async function() {
   if (!confirm('تسجيل الخروج؟')) return;
-  stopGPSTracking();
-  stopAllListeners();
+  stopGPSTracking(); stopAllListeners();
   await window.fbFns.signOut(window.fb.auth);
 };
 
@@ -422,7 +446,7 @@ async function enterApp() {
   startGPSTracking();
 }
 
-// ============ التوفر (متاح / غير متاح) ============
+// ── AVAILABILITY ──
 function updateAvailabilityUI() {
   const isAvail = currentUserData?.available !== false;
   const toggle = document.getElementById('availToggle');
@@ -436,15 +460,14 @@ window.toggleAvailability = async function() {
   if (!currentUserData) return;
   const willBeAvailable = currentUserData.available === false;
   try {
-    await window.fbFns.updateDoc(window.fbFns.doc(window.fb.db, 'captains', currentUserData.id), {
-      available: willBeAvailable
-    });
+    await window.fbFns.updateDoc(window.fbFns.doc(window.fb.db, 'captains', currentUserData.id), { available: willBeAvailable });
     currentUserData.available = willBeAvailable;
     updateAvailabilityUI();
     showToast(willBeAvailable ? '🟢 أنت متاح الآن' : '🔴 أصبحت غير متاح');
   } catch (err) { alert('خطأ: ' + err.message); }
 };
 
+// ── REALTIME ──
 function setupRealtimeListeners() {
   stopAllListeners();
   if (!currentUserData) return;
@@ -461,7 +484,7 @@ function setupRealtimeListeners() {
   );
 }
 
-// AUDIO RINGTONE
+// ── AUDIO ──
 function initAudio() {
   if (!audioCtx) {
     try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
@@ -512,6 +535,7 @@ function stopRinging() {
 document.addEventListener('touchstart', initAudio, { passive: true });
 document.addEventListener('click', initAudio);
 
+// ── INCOMING ORDER ──
 function checkForNewOrders() {
   if (!currentUserData) return;
   if (currentUserData.available === false) { if (isRinging) hideIncoming(); return; }
@@ -547,6 +571,7 @@ function hideIncoming() {
   stopRinging();
 }
 
+// ── ACCEPT ──
 function setupOrderActions() {
   document.getElementById('acceptBtn').addEventListener('click', async (e) => {
     const id = e.currentTarget.dataset.orderId;
@@ -563,43 +588,56 @@ function setupOrderActions() {
         timeline: newTimeline,
       });
       hideIncoming();
-      showToast(`✓ قبلت الطلب`);
-      // افتح واتساب برسالة تتبع جاهزة للزبون
-      sendTrackingWhatsApp(o);
+      showToast('✓ قبلت الطلب');
+      // فتح popup واتساب
+      openWaPopup(o);
     } catch (err) { alert('خطأ: ' + err.message); }
   });
 }
 
-// بناء رابط التتبع (نفس موقع تطبيق الكابتن)
+// ── WHATSAPP POPUP ──
 function buildTrackUrl(orderId) {
-  const base = window.location.href.replace(/\/[^\/]*$/, ''); // المجلد الحالي
-  return base + '/?order=' + orderId;
+  return 'https://qaesartools-web.github.io/sora3a-captain/?order=' + orderId;
 }
 
-// فتح واتساب برسالة جاهزة فيها رابط التتبع
-function sendTrackingWhatsApp(order) {
-  if (!order.phone) { showToast('⚠️ لا يوجد رقم للزبون', '⚠️'); return; }
-  // تنسيق الرقم لواتساب (العراق +964)
-  let phone = String(order.phone).replace(/[^0-9]/g, '');
-  if (phone.startsWith('00964')) phone = phone.slice(2);
-  else if (phone.startsWith('964')) { /* جاهز */ }
-  else if (phone.startsWith('0')) phone = '964' + phone.slice(1);
-  else if (phone.length === 10) phone = '964' + phone;
-
-  const trackUrl = buildTrackUrl(order.id);
+function buildWaMessage(order) {
   const capName = currentUserData?.name || 'الكابتن';
-  const msg =
-    `مرحباً ${order.customer || ''} 👋\n` +
-    `أنا ${capName} كابتن التوصيل من ${order.restaurantName || 'المطعم'} 🛵\n` +
-    `استلمت طلبك وأنا في الطريق إليك.\n\n` +
-    `📍 تابع موقعي وحالة طلبك مباشرة من هنا:\n${trackUrl}\n\n` +
-    `منصة سرعة للتوصيل`;
-
-  const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
-  // افتح واتساب في نافذة جديدة
-  window.open(waUrl, '_blank');
+  const trackUrl = buildTrackUrl(order.id);
+  return `مرحباً ${order.customer || ''} 👋\nأنا ${capName} كابتن التوصيل من ${order.restaurantName || 'المطعم'} 🛵\nاستلمت طلبك وأنا في الطريق إليك.\n\n📍 تابع موقعي وحالة طلبك مباشرة:\n${trackUrl}\n\nمنصة سرعة للتوصيل`;
 }
 
+function openWaPopup(order) {
+  if (!order.phone) { showToast('⚠️ لا يوجد رقم للزبون', '⚠️'); return; }
+  pendingWaOrder = order;
+  const msg = buildWaMessage(order);
+  document.getElementById('waMsgPreview').textContent = msg;
+  document.getElementById('waOverlay').classList.add('show');
+}
+
+function setupWaButtons() {
+  document.getElementById('waSendBtn').addEventListener('click', () => {
+    if (!pendingWaOrder) return;
+    const order = pendingWaOrder;
+    let phone = String(order.phone).replace(/[^0-9]/g, '');
+    if (phone.startsWith('00964')) phone = phone.slice(2);
+    else if (phone.startsWith('964')) { /* جاهز */ }
+    else if (phone.startsWith('0')) phone = '964' + phone.slice(1);
+    else if (phone.length === 10) phone = '964' + phone;
+    const msg = buildWaMessage(order);
+    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+    document.getElementById('waOverlay').classList.remove('show');
+    pendingWaOrder = null;
+    showToast('📲 تم فتح واتساب');
+  });
+
+  document.getElementById('waSkipBtn').addEventListener('click', () => {
+    document.getElementById('waOverlay').classList.remove('show');
+    pendingWaOrder = null;
+  });
+}
+
+// ── REJECT ──
 function setupRejectButton() {
   document.getElementById('rejectBtn').addEventListener('click', async (e) => {
     const id = e.currentTarget.dataset.orderId;
@@ -620,6 +658,7 @@ function setupRejectButton() {
   });
 }
 
+// ── ORDER ACTIONS ──
 window.orderAction = async function(orderId, action) {
   const o = cachedOrders.find(x => x.id === orderId);
   if (!o) return;
@@ -658,10 +697,7 @@ window.handlePhotoUpload = function(orderId, fileInput) {
   reader.readAsDataURL(file);
 };
 
-window.retakePhoto = function(orderId) {
-  delete window['_img_' + orderId];
-  renderAll();
-};
+window.retakePhoto = function(orderId) { delete window['_img_' + orderId]; renderAll(); };
 
 window.confirmDelivery = async function(orderId) {
   const o = cachedOrders.find(x => x.id === orderId);
@@ -673,8 +709,7 @@ window.confirmDelivery = async function(orderId) {
     await window.fbFns.updateDoc(window.fbFns.doc(window.fb.db, 'orders', orderId), {
       status: 'delivered',
       deliveryProof: { image: img, time: nowTime(), timestamp: Date.now(), capturedBy: currentUserData?.name || 'الكابتن' },
-      deliveredAt: nowTime(),
-      deliveredAtMs: Date.now(),
+      deliveredAt: nowTime(), deliveredAtMs: Date.now(),
       timeline: [...(o.timeline || []), { status: 'delivered', time: nowTime(), text: '✅ تم التسليم بصورة' }]
     });
     delete window['_img_' + orderId];
@@ -682,7 +717,7 @@ window.confirmDelivery = async function(orderId) {
   } catch (err) { alert('خطأ: ' + err.message); }
 };
 
-// GPS TRACKING
+// ── GPS ──
 function startGPSTracking() {
   if (!currentUserData) return;
   if (!navigator.geolocation) {
@@ -702,13 +737,10 @@ function startGPSTracking() {
       lastGpsUploadTime = now;
       try {
         await window.fbFns.setDoc(window.fbFns.doc(window.fb.db, 'captainLocations', currentUserData.id), {
-          captainId: currentUserData.id,
-          captainName: currentUserData.name,
+          captainId: currentUserData.id, captainName: currentUserData.name,
           restaurantId: currentUserData.restaurantId,
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-          timestamp: now
+          lat: pos.coords.latitude, lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy, timestamp: now
         });
         document.getElementById('gpsIndicator').classList.remove('error');
         document.getElementById('gpsIndicator').classList.add('success');
@@ -728,12 +760,10 @@ function startGPSTracking() {
 }
 
 function stopGPSTracking() {
-  if (gpsWatcher !== null) {
-    navigator.geolocation.clearWatch(gpsWatcher);
-    gpsWatcher = null;
-  }
+  if (gpsWatcher !== null) { navigator.geolocation.clearWatch(gpsWatcher); gpsWatcher = null; }
 }
 
+// ── RENDER ──
 function renderAll() {
   if (!currentUser || !currentUserData) return;
   const mine = cachedOrders.filter(o => o.captainId === currentUserData.id && ['accepted','pickup','delivering'].includes(o.status));
