@@ -428,19 +428,45 @@ function setupAuthListener() {
   window.fbFns.onAuthStateChanged(window.fb.auth, async (user) => {
     if (user) {
       try {
+        // Check users doc first
         const userDoc = await window.fbFns.getDoc(window.fbFns.doc(window.fb.db, 'users', user.uid));
-        if (!userDoc.exists()) { await window.fbFns.signOut(window.fb.auth); return; }
-        const userData = userDoc.data();
-        if (userData.role !== 'captain') {
-          await window.fbFns.signOut(window.fb.auth);
-          alert('❌ هذا الحساب ليس للكباتن. استخدم التطبيق الصحيح.');
-          return;
+        let userData = userDoc.exists() ? userDoc.data() : null;
+        
+        // If no users doc, check captains collection directly by email
+        if (!userData || userData.role !== 'captain') {
+          const capByEmail = await window.fbFns.getDocs(window.fbFns.query(
+            window.fbFns.collection(window.fb.db, 'captains'),
+            window.fbFns.where('email', '==', user.email)
+          ));
+          if (!capByEmail.empty) {
+            // Found captain by email - create users doc
+            userData = { role: 'captain', name: capByEmail.docs[0].data().name, email: user.email };
+            window.fbFns.setDoc(window.fbFns.doc(window.fb.db, 'users', user.uid), userData).catch(()=>{});
+          } else {
+            await window.fbFns.signOut(window.fb.auth);
+            alert('❌ هذا الحساب ليس للكباتن. تأكد من الإيميل وكلمة المرور.');
+            return;
+          }
         }
         currentUser = { uid: user.uid, email: user.email, ...userData };
-        const capSnap = await window.fbFns.getDocs(window.fbFns.query(
+        // Search captains by userId OR email
+        let capSnap = await window.fbFns.getDocs(window.fbFns.query(
           window.fbFns.collection(window.fb.db, 'captains'),
           window.fbFns.where('userId', '==', currentUser.uid)
         ));
+        if (capSnap.empty) {
+          capSnap = await window.fbFns.getDocs(window.fbFns.query(
+            window.fbFns.collection(window.fb.db, 'captains'),
+            window.fbFns.where('email', '==', user.email)
+          ));
+          // Update userId if found by email
+          if (!capSnap.empty) {
+            window.fbFns.updateDoc(capSnap.docs[0].ref, {userId: user.uid}).catch(()=>{});
+          }
+        }
+        // dummy to keep structure
+        const capSnapFinal = capSnap;
+        if (false) { const capSnap2 = capSnapFinal; }
         if (!capSnap.empty) {
           currentUserData = { id: capSnap.docs[0].id, ...capSnap.docs[0].data() };
         }
