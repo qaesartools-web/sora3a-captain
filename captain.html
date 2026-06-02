@@ -791,16 +791,20 @@ function startGPSTracking() {
   document.getElementById('gpsText').textContent = '⏳ جاري طلب إذن GPS...';
   // Quick test first
   navigator.geolocation.getCurrentPosition(
-    () => { document.getElementById('gpsText').textContent = '✓ إذن ممنوح، جاري التتبع...'; },
+    (pos) => {
+      console.log('GPS OK:', pos.coords.latitude, pos.coords.longitude);
+      document.getElementById('gpsText').textContent = '✓ إذن ممنوح، جاري التتبع...';
+    },
     (err) => {
-      let msg = 'تعذر تحديد الموقع';
-      if (err.code === 1) msg = '❌ افتح إعدادات الجهاز وفعّل الموقع الجغرافي';
-      else if (err.code === 2) msg = '⚠️ GPS غير متاح - فعّل الموقع في الجهاز';
-      else if (err.code === 3) msg = '⚠️ انتهت مهلة GPS';
+      console.error('GPS Error code:', err.code, err.message);
+      let msg = 'تعذر تحديد الموقع (كود: ' + err.code + ')';
+      if (err.code === 1) msg = '❌ مرفوض - افتح إعدادات المتصفح وأعط إذن الموقع';
+      else if (err.code === 2) msg = '⚠️ GPS غير متاح';
+      else if (err.code === 3) msg = '⚠️ انتهت مهلة GPS (timeout)';
       document.getElementById('gpsIndicator').classList.add('error');
       document.getElementById('gpsText').textContent = msg;
     },
-    { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+    { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
   );
   gpsWatcher = navigator.geolocation.watchPosition(
     async (pos) => {
