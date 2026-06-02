@@ -244,8 +244,7 @@ main{padding:14px;max-width:600px;margin:0 auto;}
       <div class="order-detail-row"><span>قيمة الطلب</span><span id="incomingValue">—</span></div>
     </div>
     <div class="action-buttons">
-      <button class="btn btn-success" id="acceptBtn" style="font-size:16px;padding:14px;">✓ قبول الطلب</button>
-      <button class="btn btn-danger" id="rejectBtn" style="font-size:16px;padding:14px;">✗ رفض</button>
+      <button class="btn btn-success" id="acceptBtn" style="font-size:16px;padding:14px;grid-column:span 2;">✓ قبول الطلب</button>
     </div>
   </div>
 </div>
@@ -317,7 +316,6 @@ window.addEventListener('firebaseReady', () => {
   setupLogin();
   setupAuthListener();
   setupAcceptBtn();
-  setupRejectBtn();
   setupWaButtons();
 });
 
@@ -554,7 +552,6 @@ function showIncoming(order) {
   document.getElementById('incomingValue').textContent = fmt(order.value)+' د.ع';
   document.getElementById('incomingFee').textContent = fmt(order.fee);
   document.getElementById('acceptBtn').dataset.orderId = order.id;
-  document.getElementById('rejectBtn').dataset.orderId = order.id;
   document.getElementById('incomingOverlay').classList.add('show');
   startRinging(order.id);
 }
