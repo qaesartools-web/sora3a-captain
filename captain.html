@@ -19,6 +19,22 @@
   --success: #2ecc71; --danger: #ff4757; --info: #4dabf7; --warning: #ffc83d;
   --role-color: #2ecc71;
 }
+
+/* SPLASH */
+#splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 30% 30%,rgba(46,204,113,.2),transparent 60%),
+             radial-gradient(ellipse at 70% 70%,rgba(74,222,128,.15),transparent 60%),#0f1115;
+  transition:opacity .6s;}
+#splash.hide{opacity:0;pointer-events:none;}
+.sp-ring{width:100px;height:100px;border-radius:50%;border:3px solid rgba(46,204,113,.3);display:flex;align-items:center;justify-content:center;animation:spR 2s ease-in-out infinite;margin-bottom:20px;}
+.sp-logo{width:72px;height:72px;background:linear-gradient(135deg,#2ecc71,#4ade80);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 0 40px rgba(46,204,113,.4);}
+@keyframes spR{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
+.sp-title{font-size:36px;font-weight:900;background:linear-gradient(135deg,#2ecc71,#4ade80);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.sp-sub{font-size:13px;color:#8a93a6;margin-top:6px;}
+.sp-bar{width:180px;height:3px;background:rgba(46,204,113,.2);border-radius:3px;margin-top:28px;overflow:hidden;}
+.sp-fill{height:100%;background:linear-gradient(90deg,#2ecc71,#4ade80);border-radius:3px;animation:spFill 2.5s ease forwards;}
+@keyframes spFill{from{width:0;}to{width:100%;}}
+
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: 'Tajawal', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 80px; }
 .login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
@@ -202,6 +218,12 @@ main { padding: 14px; max-width: 600px; margin: 0 auto; }
   </div>
 </div>
 
+<div id="splash">
+  <div class="sp-ring"><div class="sp-logo">🏍️</div></div>
+  <div class="sp-title">سرعة</div>
+  <div class="sp-sub">تطبيق الكابتن</div>
+  <div class="sp-bar"><div class="sp-fill"></div></div>
+</div>
 <div id="appContainer" style="display:none;">
 <header>
   <div class="header-logo">
@@ -240,7 +262,7 @@ main { padding: 14px; max-width: 600px; margin: 0 auto; }
     <div class="stat-mini"><div class="stat-mini-value" id="c-active">0</div><div class="stat-mini-label">نشطة</div></div>
   </div>
 
-  <div class="ring-banner" id="ringBanner">🔔 الجرس مستمر... قم بقبول أو رفض الطلب</div>
+  <div class="ring-banner" id="ringBanner">🔔 طلب جديد! اضغط قبول</div>
 
   <div class="card">
     <div class="card-title"><span class="dot"></span> طلباتي النشطة</div>
@@ -268,8 +290,7 @@ main { padding: 14px; max-width: 600px; margin: 0 auto; }
       <div class="order-detail-row"><span>قيمة الطلب</span><span id="incomingValue">—</span></div>
     </div>
     <div class="action-buttons">
-      <button class="btn btn-success" id="acceptBtn">✓ قبول</button>
-      <button class="btn btn-danger" id="rejectBtn">✗ رفض</button>
+      <button class="btn btn-success" id="acceptBtn" style="width:100%;font-size:16px;padding:14px;">✓ قبول الطلب</button>
     </div>
   </div>
 </div>
@@ -318,6 +339,13 @@ window.fbFns = { signInWithEmailAndPassword, signOut, onAuthStateChanged,
 
 document.getElementById('loginScreen').style.display = 'flex';
 window.dispatchEvent(new Event('firebaseReady'));
+
+// Splash
+setTimeout(()=>{
+  const sp=document.getElementById('splash');
+  if(sp){sp.classList.add('hide');setTimeout(()=>sp.style.display='none',600);}
+},2500);
+
 </script>
 
 <script>
@@ -645,7 +673,7 @@ function setupWaButtons() {
 
 // ── REJECT ──
 function setupRejectButton() {
-  document.getElementById('rejectBtn').addEventListener('click', async (e) => {
+  // document.getElementById('rejectBtn').addEventListener('click', async (e) => {
     const id = e.currentTarget.dataset.orderId;
     if (!currentUserData) return;
     const o = cachedOrders.find(x => x.id === id);
