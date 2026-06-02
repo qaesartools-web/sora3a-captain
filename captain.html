@@ -788,6 +788,19 @@ function startGPSTracking() {
     return;
   }
   document.getElementById('gpsText').textContent = '⏳ جاري طلب إذن GPS...';
+  // Quick test first
+  navigator.geolocation.getCurrentPosition(
+    () => { document.getElementById('gpsText').textContent = '✓ إذن ممنوح، جاري التتبع...'; },
+    (err) => {
+      let msg = 'تعذر تحديد الموقع';
+      if (err.code === 1) msg = '❌ افتح إعدادات الجهاز وفعّل الموقع الجغرافي';
+      else if (err.code === 2) msg = '⚠️ GPS غير متاح - فعّل الموقع في الجهاز';
+      else if (err.code === 3) msg = '⚠️ انتهت مهلة GPS';
+      document.getElementById('gpsIndicator').classList.add('error');
+      document.getElementById('gpsText').textContent = msg;
+    },
+    { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+  );
   gpsWatcher = navigator.geolocation.watchPosition(
     async (pos) => {
       const now = Date.now();
