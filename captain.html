@@ -701,7 +701,7 @@ function setupWaButtons() {
 
 // ── REJECT ──
 function setupRejectButton() {
-  // document.getElementById('rejectBtn').addEventListener('click', async (e) => {
+  document.getElementById('rejectBtn').addEventListener('click', async (e) => {
     const id = e.currentTarget.dataset.orderId;
     if (!currentUserData) return;
     const o = cachedOrders.find(x => x.id === id);
@@ -894,4 +894,5 @@ if('serviceWorker' in navigator){
 }
 </script></body>
 </html>
+
 
