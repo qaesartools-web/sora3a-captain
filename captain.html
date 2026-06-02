@@ -788,7 +788,7 @@ function startGPSTracking() {
     document.getElementById('gpsText').textContent = '❌ المتصفح لا يدعم GPS';
     return;
   }
-  document.getElementById('gpsText').textContent = '⏳ جاري طلب إذن GPS...';
+  document.getElementById('gpsText').textContent = '📍 GPS قيد التشغيل...';
   // Quick test first
   navigator.geolocation.getCurrentPosition(
     (pos) => {
@@ -835,7 +835,7 @@ function startGPSTracking() {
       else if (err.code === 3) msg = '⚠️ انتهت مهلة GPS';
       document.getElementById('gpsText').textContent = msg;
     },
-    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+    { enableHighAccuracy: false, maximumAge: 30000, timeout: 30000 }
   );
 }
 
