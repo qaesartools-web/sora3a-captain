@@ -13,6 +13,8 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Reem+Kufi:wght@500;700&display=swap" rel="stylesheet">
 <style>
+#installBtn{display:none;position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#2ecc71;color:#fff;border:none;border-radius:20px;padding:10px 20px;font-family:'Tajawal',sans-serif;font-size:14px;font-weight:700;cursor:pointer;z-index:99999;box-shadow:0 4px 20px rgba(46,204,113,.6);}
+
 :root {
   --bg:#0f1115;--panel:#161922;--panel-2:#1d212c;--line:#262b38;
   --text:#e8eaf0;--muted:#8a93a6;--accent:#2ecc71;--accent-2:#4ade80;
@@ -157,6 +159,8 @@ main{padding:14px;max-width:600px;margin:0 auto;}
 </style>
 </head>
 <body>
+<button id="installBtn" onclick="doInstall()">📲 تثبيت التطبيق</button>
+
 
 <!-- SPLASH -->
 <div id="splash">
@@ -781,6 +785,22 @@ setInterval(()=>{ if(currentUserData) renderAll(); }, 5000);
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sora3a-captain/sw.js',{scope:'/sora3a-captain/'}).catch(()=>{});
 }
+
+let installPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();installPrompt=e;
+  const b=document.getElementById('installBtn');
+  if(b) b.style.display='block';
+});
+window.doInstall=function(){
+  if(!installPrompt)return;
+  installPrompt.prompt();
+  installPrompt.userChoice.then(()=>{
+    const b=document.getElementById('installBtn');
+    if(b) b.style.display='none';
+    installPrompt=null;
+  });
+};
 </script>
 </body>
 </html>
