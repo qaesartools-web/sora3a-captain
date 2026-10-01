@@ -249,7 +249,7 @@ main{max-width:640px;margin:0 auto;padding:14px 14px 0;}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { initializeAuth, browserLocalPersistence, indexedDBLocalPersistence, signInWithEmailAndPassword, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, query, where, onSnapshot, runTransaction, arrayUnion }
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, query, where, onSnapshot, runTransaction, arrayUnion }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getMessaging, getToken, onMessage, isSupported }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
@@ -338,13 +338,21 @@ onAuthStateChanged(auth, async (user) => {
     // الصلاحية من users/{uid} فقط — لا بحث بالإيميل ولا كتابة ذاتية للدور
     const u = await getDoc(doc(db, 'users', user.uid));
     const d = u.exists() ? u.data() : null;
-    if (!d || d.role !== 'captain' || d.disabled) return deny('❌ هذا الحساب غير مسجّل ككابتن');
-    if (!d.captainId || !d.restaurantId) return deny('⚠️ حسابك يحتاج تحديث من الإدارة. تواصل مع المطعم.');
-    const c = await getDoc(doc(db, 'captains', d.captainId));
-    if (!c.exists()) return deny('❌ حساب الكابتن محذوف');
-    me = { uid: user.uid, ...d };
+    if (d && (d.role !== 'captain' || d.disabled)) return deny('❌ هذا الحساب غير مسجّل ككابتن');
+    let captainId = d && d.captainId, restaurantId = d && d.restaurantId;
+    if (!captainId) {
+      // حسابات قديمة قبل "ربط الحسابات": الكابتن مربوط بحسابه عبر userId الذي وضعته الإدارة (ليس بالإيميل)
+      try {
+        const q = await getDocs(query(collection(db, 'captains'), where('userId', '==', user.uid)));
+        if (!q.empty) { captainId = q.docs[0].id; restaurantId = q.docs[0].data().restaurantId; }
+      } catch {}
+    }
+    if (!captainId || !restaurantId) return deny('⚠️ حسابك يحتاج تحديث من الإدارة. تواصل مع المطعم.');
+    const c = await getDoc(doc(db, 'captains', captainId));
+    if (!c.exists() || c.data().userId !== user.uid) return deny('❌ حساب الكابتن محذوف');
+    me = { uid: user.uid, ...(d || {}), role: 'captain', captainId, restaurantId };
     capDoc = { id: c.id, ...c.data() };
-    try { const r = await getDoc(doc(db, 'restaurants', d.restaurantId)); restName = r.exists() ? (r.data().name || '') : ''; } catch { restName = ''; }
+    try { const r = await getDoc(doc(db, 'restaurants', restaurantId)); restName = r.exists() ? (r.data().name || '') : ''; } catch { restName = ''; }
     enterApp();
   } catch (e) {
     console.error(e);
