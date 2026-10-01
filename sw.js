@@ -1,42 +1,73 @@
-const CACHE_VERSION = 'captain-v2';
+// سرعة — الكابتن: Service Worker (تخزين مؤقت + إشعارات الخلفية)
+const CACHE_VERSION = 'captain-v3';
 const CACHE_NAME = `app-cache-${CACHE_VERSION}`;
-const PRECACHE = ['/sora3a-captain/', '/sora3a-captain/captain.html', '/sora3a-captain/manifest.json'];
+const SCOPE = '/sora3a-captain/';
+const PRECACHE = [SCOPE, SCOPE + 'captain.html', SCOPE + 'manifest.json', SCOPE + 'icon-192.png'];
+
+// ── إشعارات Firebase بالخلفية (التطبيق مغلق) ──
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+firebase.initializeApp({
+  apiKey: 'AIzaSyAwlFrbv-c6G0_K0-s0P1m1o_qD95aGGyQ',
+  authDomain: 'sora3a-system.firebaseapp.com',
+  projectId: 'sora3a-system',
+  storageBucket: 'sora3a-system.firebasestorage.app',
+  messagingSenderId: '516304449260',
+  appId: '1:516304449260:web:e0d2e20d8964e4d6656733',
+});
+const messaging = firebase.messaging();
+// رسائل بدون notification (data فقط) نعرضها بأنفسنا؛ الرسائل التي فيها notification يعرضها Firebase تلقائياً
+messaging.onBackgroundMessage((payload) => {
+  if (payload.notification) return;
+  const d = payload.data || {};
+  return self.registration.showNotification(d.title || '🛵 طلب توصيل جديد', {
+    body: d.body || '', tag: d.tag || 'order', renotify: true, requireInteraction: true,
+    icon: SCOPE + 'icon-192.png', badge: SCOPE + 'icon-192.png', vibrate: [300, 100, 300, 100, 400],
+    dir: 'rtl', lang: 'ar', data: { url: d.link || SCOPE + 'captain.html' },
+  });
+});
+
+// الضغط على الإشعار يفتح التطبيق (أو يركّز عليه إن كان مفتوحاً)
+self.addEventListener('notificationclick', (event) => {
+  const data = event.notification.data || {};
+  if (data.FCM_MSG) return; // يتولاه Firebase
+  event.notification.close();
+  const url = data.url || SCOPE + 'captain.html';
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    for (const c of list) { if (c.url.includes(SCOPE) && 'focus' in c) return c.focus(); }
+    return self.clients.openWindow(url);
+  }));
+});
+
+// ── التخزين المؤقت ──
 const RUNTIME_CACHE_PATTERNS = [
   /^https:\/\/www\.gstatic\.com\/firebasejs/,
-  /^https:\/\/cdn\.jsdelivr\.net/,
-  /^https:\/\/cdnjs\.cloudflare\.com/,
-  /^https:\/\/unpkg\.com/,
-  /\.(?:js|css|png|jpg|jpeg|svg|woff2|woff|ttf)$/
+  /^https:\/\/fonts\.(googleapis|gstatic)\.com/,
+  /\.(?:png|jpg|jpeg|svg|woff2|woff|ttf)$/,
 ];
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(PRECACHE).catch(() => {})).then(() => self.skipWaiting()));
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(PRECACHE).catch(() => {})).then(() => self.skipWaiting()));
 });
-self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+self.addEventListener('activate', (e) => {
+  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
-self.addEventListener('fetch', event => {
-  const request = event.request;
-  const url = new URL(request.url);
-  if (request.method !== 'GET') return;
-  if (url.hostname.includes('firebaseio.com') || url.hostname.includes('firebasedatabase.app') ||
-      url.hostname.includes('script.google.com') || url.hostname.includes('googleapis.com') ||
-      url.hostname.includes('imgbb.com') || url.hostname.includes('ibb.co')) return;
-  if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
-    event.respondWith(fetch(request).then(r => {
-      const clone = r.clone();
-      caches.open(CACHE_NAME).then(c => c.put(request, clone)).catch(() => {});
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (/firebaseio\.com|firebasedatabase\.app|firestore\.googleapis|identitytoolkit|securetoken|fcmregistrations|tile\.openstreetmap/.test(url.hostname)) return;
+  // الصفحات: الشبكة أولاً ثم النسخة المخزنة
+  if (req.mode === 'navigate') {
+    event.respondWith(fetch(req).then((r) => {
+      const c = r.clone(); caches.open(CACHE_NAME).then((cc) => cc.put(req, c)).catch(() => {});
       return r;
-    }).catch(() => caches.match(request).then(r => r || caches.match('/sora3a-captain/'))));
+    }).catch(() => caches.match(req).then((r) => r || caches.match(SCOPE + 'captain.html'))));
     return;
   }
-  const shouldCache = RUNTIME_CACHE_PATTERNS.some(p => p.test(url.href));
-  if (shouldCache) {
-    event.respondWith(caches.match(request).then(cached => {
-      if (cached) return cached;
-      return fetch(request).then(r => {
-        if (r.ok) { const c = r.clone(); caches.open(CACHE_NAME).then(cc => cc.put(request, c)).catch(() => {}); }
-        return r;
-      }).catch(() => cached);
-    }));
+  if (RUNTIME_CACHE_PATTERNS.some((p) => p.test(url.href))) {
+    event.respondWith(caches.match(req).then((cached) => cached || fetch(req).then((r) => {
+      if (r.ok) { const c = r.clone(); caches.open(CACHE_NAME).then((cc) => cc.put(req, c)).catch(() => {}); }
+      return r;
+    })));
   }
 });
