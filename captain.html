@@ -810,7 +810,7 @@ $('installBtn').addEventListener('click', async () => { if (!installPrompt) retu
 registerSw();
 </script>
 <script>
-// تحديث تلقائي صامت: كل ٥ ثواني نتأكد هل نزل إصدار جديد للتطبيق، ونحدّث فقط لما الشاشة فاضية
+// البيانات والإشعارات مباشرة دائماً. هنا فقط: كل 5 ثواني نتأكد هل نزل إصدار جديد، وينطبق بالخلفية بدون ما يقاطعك
 (function(){
   var KEY='au_state_'+location.pathname, base=null, cand=null, pending=false, busy=false;
   function sig(r){var e=(r.headers.get('etag')||'').replace(/^W\//,'').replace(/-gzip"?$/,'"');return r.headers.get('last-modified')||e;}
@@ -822,6 +822,8 @@ registerSw();
       return !/checkbox|radio|date|time|hidden|file|range|color/.test(i.type)&&i.offsetParent&&i.value!==i.defaultValue;});
   }
   function tryReload(){
+    // ما نحدّث والشاشة أمامك أبداً: الإصدار الجديد ينطبق لما يكون التطبيق بالخلفية
+    if(!document.hidden)return;
     var idle=true;try{idle=!window.auIdle||window.auIdle();}catch(e){}
     if(!idle||dirty())return;
     try{sessionStorage.setItem(KEY,JSON.stringify(window.auSave?window.auSave():{}));}catch(e){}
@@ -840,7 +842,7 @@ registerSw();
   }
   window.auRestore=function(){try{var s=sessionStorage.getItem(KEY);sessionStorage.removeItem(KEY);return s?JSON.parse(s):null;}catch(e){return null;}};
   setInterval(check,5000);setTimeout(check,1500);
-  document.addEventListener('visibilitychange',function(){if(!document.hidden)check();});
+  document.addEventListener('visibilitychange',function(){if(document.hidden){if(pending)tryReload();}else check();});
 })();
 </script>
 </body>
