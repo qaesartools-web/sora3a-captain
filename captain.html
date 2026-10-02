@@ -507,7 +507,7 @@ function renderHistory() {
     (done.length ? done.slice(0, 60).map((o) => `<div class="card" style="padding:12px">
       <div class="order-top" style="margin-bottom:4px"><span class="oid">#${esc(shortId(o.id))}</span><span class="badge b-delivered">+${fmt(o.fee)} د.ع</span></div>
       <div class="row muted" style="font-size:13px"><span class="ic">📍</span><span>${esc(o.address || '—')}</span></div>
-      <div class="row muted" style="font-size:12px"><span class="ic">🕐</span><span>${o.deliveredAtMs ? esc(new Date(o.deliveredAtMs).toLocaleString('ar-IQ')) : esc(o.deliveredAt || '')}</span></div>
+      <div class="row muted" style="font-size:12px"><span class="ic">🕐</span><span>${o.deliveredAtMs ? esc(new Date(o.deliveredAtMs).toLocaleString('ar-IQ-u-nu-latn')) : esc(o.deliveredAt || '')}</span></div>
     </div>`).join('') : `<div class="card empty"><div class="i">📊</div>لا توجد توصيلات بعد</div>`));
 }
 
