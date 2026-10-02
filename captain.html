@@ -10,7 +10,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="الكابتن">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -34,7 +35,7 @@ button{font-family:inherit;}
 /* splash */
 #splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);transition:opacity .4s;}
 #splash.hide{opacity:0;pointer-events:none;}
-.logo-mark{width:76px;height:76px;border-radius:22px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-size:36px;box-shadow:0 12px 36px rgba(0,139,44,.35);}
+.logo-mark{width:76px;height:76px;border-radius:22px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-size:36px;box-shadow:0 12px 36px rgba(217,72,15,.35);}
 .brand{font-size:30px;font-weight:900;margin-top:16px;color:var(--accent);}
 .brand-sub{color:var(--muted);font-size:13px;margin-top:4px;}
 
@@ -158,12 +159,12 @@ main{max-width:640px;margin:0 auto;padding:14px 14px 0;}
 <body>
 <button id="installBtn" class="hidden">📲 تثبيت التطبيق</button>
 
-<div id="splash"><div class="logo-mark">🛵</div><div class="brand">سرعة</div><div class="brand-sub">تطبيق الكابتن</div></div>
+<div id="splash"><img class="logo-mark" src="logo.svg" alt="شعار سرعة"><div class="brand">سرعة</div><div class="brand-sub">تطبيق الكابتن</div></div>
 
 <!-- LOGIN -->
 <section id="login" class="hidden">
   <div class="login-card">
-    <div class="logo-mark">🛵</div>
+    <img class="logo-mark" src="logo.svg" alt="شعار سرعة">
     <h1>دخول الكابتن</h1>
     <p class="sub">بيانات الدخول يعطيك إياها المطعم</p>
     <div class="err hidden" id="loginErr"></div>
