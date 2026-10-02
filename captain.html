@@ -329,6 +329,7 @@ async function doLogin() {
 $('loginBtn').addEventListener('click', doLogin);
 $('password').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
 
+const SVC_OFF = '⛔ خدمة الكابتن متوقفة لهذا المطعم حالياً. تواصل مع الإدارة.';
 async function deny(msg) { await signOut(auth); loginErr(msg); screen('login'); }
 
 onAuthStateChanged(auth, async (user) => {
@@ -348,12 +349,17 @@ onAuthStateChanged(auth, async (user) => {
       } catch {}
     }
     if (!captainId || !restaurantId) return deny('⚠️ حسابك يحتاج تحديث من الإدارة. تواصل مع المطعم.');
+    // خدمة الكابتن يفتحها ويغلقها المدير الأعلى لكل مطعم
+    const rs = await getDoc(doc(db, 'restaurants', restaurantId)).catch(() => null);
+    const svcOff = (r) => !!(r && r.exists() && r.data().features && r.data().features.captain === false);
+    if (svcOff(rs)) return deny(SVC_OFF);
     const c = await getDoc(doc(db, 'captains', captainId));
     if (!c.exists() || c.data().userId !== user.uid) return deny('❌ حساب الكابتن محذوف');
     me = { uid: user.uid, ...(d || {}), role: 'captain', captainId, restaurantId };
     capDoc = { id: c.id, ...c.data() };
-    try { const r = await getDoc(doc(db, 'restaurants', restaurantId)); restName = r.exists() ? (r.data().name || '') : ''; } catch { restName = ''; }
+    restName = rs && rs.exists() ? (rs.data().name || '') : '';
     enterApp();
+    unsubs.push(onSnapshot(doc(db, 'restaurants', restaurantId), (r) => { if (svcOff(r)) deny(SVC_OFF); }, () => {}));
   } catch (e) {
     console.error(e);
     deny('❌ تعذّر تحميل الحساب، حاول مجدداً');
