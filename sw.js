@@ -1,5 +1,5 @@
 // سرعة — الكابتن: Service Worker (تخزين مؤقت + إشعارات الخلفية)
-const CACHE_VERSION = 'captain-v8';
+const CACHE_VERSION = 'captain-v9';
 const CACHE_NAME = `app-cache-${CACHE_VERSION}`;
 const SCOPE = '/sora3a-captain/';
 const PRECACHE = [SCOPE, SCOPE + 'captain.html', SCOPE + 'manifest.json', SCOPE + 'icon-192.png'];
@@ -59,6 +59,7 @@ self.addEventListener('fetch', (event) => {
   // الصفحات: الشبكة أولاً ثم النسخة المخزنة
   if (req.mode === 'navigate') {
     event.respondWith(fetch(new Request(req.url, { cache: 'no-cache', credentials: 'same-origin' })).then((r) => {
+      if (r.redirected) return Response.redirect(r.url, 302);
       const c = r.clone(); caches.open(CACHE_NAME).then((cc) => cc.put(req, c)).catch(() => {});
       return r;
     }).catch(() => caches.match(req).then((r) => r || caches.match(SCOPE + 'captain.html'))));
