@@ -70,6 +70,8 @@ button{font-family:inherit;}
 .avail{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1.5px solid var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:800;font-size:13px;cursor:pointer;}
 .avail .dot{width:10px;height:10px;border-radius:50%;background:currentColor;}
 .avail.off{border-color:var(--line);background:var(--panel2);color:var(--muted);}
+.stby{display:block;width:calc(100% - 24px);margin:8px 12px 0;padding:10px 12px;border-radius:14px;border:1.5px solid #F59E0B;background:rgba(245,158,11,.12);color:#B45309;font:inherit;font-weight:800;font-size:13.5px;cursor:pointer;text-align:center;}
+.stby.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
 
 main{max-width:640px;margin:0 auto;padding:14px 14px 0;}
 .banner{display:flex;align-items:center;gap:10px;border-radius:14px;padding:11px 14px;font-size:13px;font-weight:700;margin-bottom:12px;}
@@ -181,6 +183,7 @@ main{max-width:640px;margin:0 auto;padding:14px 14px 0;}
     <div class="hdr-info"><div class="hdr-name" id="hName">—</div><div class="hdr-sub" id="hRest">—</div></div>
     <button class="avail" id="availBtn"><span class="dot"></span><span id="availTxt">متاح</span></button>
   </header>
+  <button class="stby" id="stbyChip" type="button" hidden></button>
   <main>
     <div id="banners"></div>
     <div class="stats">
@@ -379,11 +382,13 @@ async function logout() {
   // إيقاف الإشعارات لهذا الجهاز
   if (me) { try { await setDoc(doc(db, 'pushTokens', me.uid), { tokens: [], role: 'captain', captainId: me.captainId, restaurantId: me.restaurantId, updatedAtMs: Date.now() }); } catch {} }
   me = null;
+  stopStandby();
   await signOut(auth);
 }
 
 // ── app ──
-window.auIdle = () => !document.querySelector('.overlay.show');
+// التحديث التلقائي ما يعيد تحميل الصفحة والكابتن بوضع الاستلام (حتى ما ينطفي الرنين)
+window.auIdle = () => !document.querySelector('.overlay.show') && !standby;
 window.auSave = () => ({ tab: (document.querySelector('.nav button[data-tab].on') || {}).dataset?.tab || '' });
 function enterApp() {
   screen('app');
@@ -542,12 +547,15 @@ document.addEventListener('change', (e) => { const i = e.target.closest('input[d
 // ── availability ──
 function renderAvail() {
   const on = capDoc?.available !== false;
+  if (!on && standby) stopStandby();
+  renderStandby();
   $('availBtn').classList.toggle('off', !on);
   $('availTxt').textContent = on ? 'متاح' : 'غير متاح';
 }
 $('availBtn').addEventListener('click', async () => {
   if (!capDoc) return;
   const next = capDoc.available === false;
+  if (next) startStandby(); else stopStandby();
   try { await updateDoc(doc(db, 'captains', me.captainId), { available: next, lastSeenMs: Date.now() }); toast(next ? '🟢 أنت متاح الآن' : '🔴 أصبحت غير متاح'); }
   catch { toast('❌ تعذّر التحديث'); }
 });
@@ -571,7 +579,7 @@ $('rejectBtn').addEventListener('click', (e) => reject(e.currentTarget.dataset.o
 function unlockAudio() {
   try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); } catch {}
 }
-document.addEventListener('pointerdown', unlockAudio, { passive: true });
+document.addEventListener('pointerdown', () => { unlockAudio(); if (me && !standby && capDoc?.available !== false) startStandby(); }, { passive: true });
 function beep() {
   if (!audioCtx) return;
   const t = audioCtx.currentTime;
@@ -583,8 +591,80 @@ function beep() {
   });
   if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 300]);
 }
-function startRing() { stopRing(); unlockAudio(); beep(); ringTimer = setInterval(beep, 1100); }
-function stopRing() { if (ringTimer) clearInterval(ringTimer); ringTimer = null; if (navigator.vibrate) navigator.vibrate(0); }
+function startRing() {
+  stopRing(); unlockAudio();
+  // صوت الرنين كملف صوتي: يكمل يرن حتى والشاشة مطفية (وضع الاستلام)
+  if (ringAudio) { try { ringAudio.currentTime = 0; ringAudio.volume = 1; } catch {} ringAudio.play().then(() => {}).catch(() => { beep(); ringTimer = setInterval(beep, 1100); }); }
+  else { beep(); ringTimer = setInterval(beep, 1100); }
+  vibTimer = setInterval(() => { if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 400]); }, 2200);
+  if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 400]);
+}
+function stopRing() {
+  if (ringTimer) clearInterval(ringTimer); ringTimer = null;
+  if (vibTimer) clearInterval(vibTimer); vibTimer = null;
+  try { ringAudio && ringAudio.pause(); } catch {}
+  if (navigator.vibrate) navigator.vibrate(0);
+}
+
+// ══ وضع الاستلام: يبقي التطبيق صاحي حتى يرن الطلب والشاشة مطفية ══
+// صوت خافت جداً يشتغل بالخلفية (المتصفح ما ينيّم صفحة تشغّل صوت) + إبقاء الشاشة شغالة + رنين كملف صوتي
+function wavUrl(sec, fn, sr) {
+  const n = Math.floor(sec * sr), b = new ArrayBuffer(44 + n * 2), v = new DataView(b);
+  const w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, fn(i / sr))) * 32767, true);
+  return URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
+}
+const RING_PARTS = [[880, 0, .18], [1175, .2, .18], [1480, .4, .25]];
+let keepAudio = null, ringAudio = null, wakeLock = null, standby = false, vibTimer = null;
+function makeAudios() {
+  if (!keepAudio) { keepAudio = new Audio(wavUrl(2, (t) => .004 * Math.sin(2 * Math.PI * 40 * t), 8000)); keepAudio.loop = true; }
+  if (!ringAudio) {
+    ringAudio = new Audio(wavUrl(1.1, (t) => { const p = RING_PARTS.find(([, st, d]) => t >= st && t < st + d); if (!p) return 0; const x = t - p[1], env = Math.min(1, x / .02) * Math.min(1, (p[2] - x) / .03); return .8 * env * (Math.sin(2 * Math.PI * p[0] * t) > 0 ? 1 : -1); }, 22050));
+    ringAudio.loop = true; ringAudio.preload = 'auto';
+  }
+}
+async function startStandby() {
+  if (!me || capDoc?.available === false) return;
+  makeAudios();
+  if (!standby) {
+    standby = true;
+    if ('mediaSession' in navigator) { try { navigator.mediaSession.metadata = new MediaMetadata({ title: 'سرعة كابتن', artist: '🛵 جاهز لاستلام الطلبات' }); } catch {} }
+  }
+  try { if (keepAudio.paused) await keepAudio.play(); } catch {}
+  // تهيئة صوت الرنين بلمسة الكابتن (المتصفح يمنع تشغيل الصوت بدون لمسة)
+  try { if (ringAudio.paused && !ringing) { ringAudio.volume = 0; await ringAudio.play(); ringAudio.pause(); ringAudio.volume = 1; } } catch {}
+  await keepScreenOn();
+  renderStandby();
+}
+async function keepScreenOn() {
+  if (!standby || document.hidden || wakeLock || !('wakeLock' in navigator)) return;
+  try { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; renderStandby(); }); } catch {}
+}
+function stopStandby() {
+  standby = false;
+  try { keepAudio && keepAudio.pause(); } catch {}
+  try { wakeLock && wakeLock.release(); } catch {}
+  wakeLock = null; renderStandby();
+}
+function renderStandby() {
+  const el = $('stbyChip'); if (!el) return;
+  const avail = !!me && capDoc?.available !== false;
+  el.hidden = !avail;
+  if (!avail) return;
+  const live = standby && keepAudio && !keepAudio.paused;
+  el.classList.toggle('on', !!live);
+  el.textContent = live ? (wakeLock ? '🔔 وضع الاستلام شغّال — يرن حتى والشاشة مطفية • 🔆 الشاشة تبقى شغالة' : '🔔 وضع الاستلام شغّال — يرن حتى والشاشة مطفية') : '🔕 اضغط هنا حتى يرن الطلب والشاشة مطفية';
+}
+$('stbyChip').addEventListener('click', () => startStandby());
+window.__stby = () => ({ standby, keep: !!keepAudio && !keepAudio.paused, ring: !!ringAudio && !ringAudio.paused });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden || !standby) return;
+  keepScreenOn();
+  if (keepAudio && keepAudio.paused) keepAudio.play().catch(() => {});
+  renderStandby();
+});
 
 // ── order actions ──
 async function guard(id, fn) { if (!id || busy.has(id)) return; busy.add(id); try { await fn(); } finally { busy.delete(id); } }
