@@ -269,6 +269,7 @@ const firebaseConfig = {
 // مفتاح Web Push (اختياري): Firebase Console ← Project settings ← Cloud Messaging ← Web Push certificates
 const VAPID_KEY = '';
 const NATIVE = window.SoraNative || null; // داخل تطبيق الأندرويد
+const APK_URL = 'https://github.com/qaesartools-web/sora3a-captain/releases/latest/download/sora3a-captain.apk';
 let nativeNotif = null;
 const TRACK_URL = 'https://qaesartools-web.github.io/sora3a-captain/?order=';
 const SCOPE = '/sora3a-captain/';
@@ -811,6 +812,7 @@ function renderBanners() {
   if (perm === 'default') b.push(`<div class="banner info">🔔 الإشعارات غير مفعّلة <button data-act="enable-notif">تفعيل</button></div>`);
   else if (perm === 'denied') b.push(`<div class="banner warn">🔕 الإشعارات محظورة <button data-act="enable-notif">كيف أفعّلها؟</button></div>`);
   else if (perm === 'unsupported' && isIos() && !isStandalone()) b.push(`<div class="banner info">📲 للإشعارات على آيفون: اضغط مشاركة ← "إضافة إلى الشاشة الرئيسية" وافتح التطبيق منها</div>`);
+  if (!NATIVE && /Android/i.test(navigator.userAgent)) b.push(`<div class="banner info">📲 نزّل تطبيق الكابتن للأندرويد — يرن مثل المكالمة حتى والتلفون مقفول <a href="${APK_URL}" style="font-weight:800;white-space:nowrap">تنزيل</a></div>`);
   $('banners').innerHTML = b.join('');
 }
 
