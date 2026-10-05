@@ -863,7 +863,8 @@ async function saveToken(token) {
   const ref = doc(db, 'pushTokens', me.uid);
   let tokens = [];
   try { const s = await getDoc(ref); tokens = s.exists() ? (s.data().tokens || []) : []; } catch {}
-  tokens = [token, ...tokens.filter((t) => t !== token)].slice(0, 5);
+  // تطبيق الأندرويد يلغي تسجيلات الويب القديمة (حتى ما يرن مرتين على نفس التلفون)
+  tokens = NATIVE ? [token] : [token, ...tokens.filter((t) => t !== token)].slice(0, 5);
   await setDoc(ref, { tokens, role: 'captain', captainId: me.captainId, restaurantId: me.restaurantId, updatedAtMs: Date.now() });
 }
 
