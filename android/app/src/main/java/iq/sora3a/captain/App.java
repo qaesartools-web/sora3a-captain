@@ -4,14 +4,18 @@ import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.media.AudioAttributes;
-import android.media.RingtoneManager;
 import android.os.Build;
 
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 
 public class App extends Application {
-    public static final String CHANNEL_ORDERS = "orders_ring_v1";
+    public static final String CHANNEL_ORDERS = "orders_ring_v2";
+
+    // نفس نغمة الطلب داخل التطبيق
+    public static android.net.Uri ringUri(android.content.Context c) {
+        return android.net.Uri.parse("android.resource://" + c.getPackageName() + "/" + R.raw.order_ring);
+    }
 
     @Override
     public void onCreate() {
@@ -31,13 +35,14 @@ public class App extends Application {
         FirebaseApp.initializeApp(this, opts);
     }
 
-    // قناة الطلبات: صوت رنة التلفون (طويلة) + اهتزاز + تطلع فوق الشاشة
+    // قناة الطلبات: نغمة الطلب (تتكرر) + اهتزاز + تطلع فوق الشاشة
+    // الكابتن يكدر يغيّر النغمة من إعدادات التلفون ← التطبيقات ← سرعة - الكابتن ← الإشعارات ← طلبات التوصيل
     private void createChannels() {
         if (Build.VERSION.SDK_INT < 26) return;
         NotificationManager nm = getSystemService(NotificationManager.class);
         NotificationChannel ch = new NotificationChannel(CHANNEL_ORDERS, getString(R.string.channel_orders), NotificationManager.IMPORTANCE_HIGH);
         ch.setDescription(getString(R.string.channel_orders_desc));
-        ch.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE), new AudioAttributes.Builder()
+        ch.setSound(ringUri(this), new AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .build());
@@ -46,5 +51,6 @@ public class App extends Application {
         ch.enableLights(true);
         ch.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
         nm.createNotificationChannel(ch);
+        nm.deleteNotificationChannel("orders_ring_v1"); // القناة القديمة (رنة التلفون)
     }
 }

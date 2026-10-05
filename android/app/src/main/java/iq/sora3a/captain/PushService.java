@@ -3,7 +3,6 @@ package iq.sora3a.captain;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.Intent;
-import android.media.RingtoneManager;
 import android.os.Build;
 
 import androidx.core.app.NotificationCompat;
@@ -48,7 +47,7 @@ public class PushService extends FirebaseMessagingService {
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_CALL)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE))
+                .setSound(App.ringUri(this))
                 .setVibrate(new long[]{0, 800, 400, 800, 400, 800})
                 .setAutoCancel(true)
                 .setTimeoutAfter(RING_MAX_MS)
