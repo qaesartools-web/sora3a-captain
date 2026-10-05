@@ -10,6 +10,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.webkit.GeolocationPermissions;
 import android.webkit.JavascriptInterface;
@@ -20,9 +21,13 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import androidx.core.content.FileProvider;
+
 import com.google.firebase.messaging.FirebaseMessaging;
 
 import org.json.JSONObject;
+
+import java.io.File;
 
 // تطبيق الكابتن: نفس صفحة الكابتن من الإنترنت (أي تحديث يوصل فوراً) + رنة أصلية من الأندرويد
 public class MainActivity extends Activity {
@@ -34,6 +39,7 @@ public class MainActivity extends Activity {
 
     private WebView web;
     private ValueCallback<Uri[]> fileCallback;
+    private Uri photoUri;
     private GeolocationPermissions.Callback geoCallback;
     private String geoOrigin;
     private boolean tokenWanted = false;
@@ -78,6 +84,15 @@ public class MainActivity extends Activity {
             public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams params) {
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
                 fileCallback = cb;
+                photoUri = null;
+                // صورة التسليم (capture): تفتح الكاميرا مباشرة
+                if (params.isCaptureEnabled()) {
+                    Intent cam = cameraIntent();
+                    if (cam != null) {
+                        try { startActivityForResult(cam, REQ_FILE); return true; }
+                        catch (ActivityNotFoundException ignored) { photoUri = null; }
+                    }
+                }
                 try { startActivityForResult(params.createIntent(), REQ_FILE); }
                 catch (ActivityNotFoundException e) { fileCallback = null; return false; }
                 return true;
@@ -105,12 +120,14 @@ public class MainActivity extends Activity {
         super.onResume();
         inForeground = true;
         stopRing();
+        if (web != null) web.evaluateJavascript("window.__soraFg&&window.__soraFg(true)", null);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         inForeground = false;
+        if (web != null) web.evaluateJavascript("window.__soraFg&&window.__soraFg(false)", null);
         if (Build.VERSION.SDK_INT >= 27) { setShowWhenLocked(false); setTurnScreenOn(false); }
     }
 
@@ -124,6 +141,22 @@ public class MainActivity extends Activity {
     public void onBackPressed() {
         if (web.canGoBack()) web.goBack();
         else moveTaskToBack(true); // يبقى شغّال بالخلفية
+    }
+
+    // الكاميرا تحفظ الصورة بملف مؤقت داخل التطبيق
+    private Intent cameraIntent() {
+        try {
+            File dir = new File(getCacheDir(), "photos");
+            if (!dir.exists() && !dir.mkdirs()) return null;
+            File f = new File(dir, "proof_" + System.currentTimeMillis() + ".jpg");
+            photoUri = FileProvider.getUriForFile(this, getPackageName() + ".files", f);
+            return new Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+                    .putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
+                    .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } catch (Exception e) {
+            photoUri = null;
+            return null;
+        }
     }
 
     private void stopRing() {
@@ -185,8 +218,10 @@ public class MainActivity extends Activity {
     protected void onActivityResult(int code, int result, Intent data) {
         super.onActivityResult(code, result, data);
         if (code == REQ_FILE && fileCallback != null) {
-            fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result, data));
+            if (photoUri != null) fileCallback.onReceiveValue(result == RESULT_OK ? new Uri[]{photoUri} : null);
+            else fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result, data));
             fileCallback = null;
+            photoUri = null;
         }
     }
 
