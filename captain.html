@@ -268,6 +268,8 @@ const firebaseConfig = {
 };
 // مفتاح Web Push (اختياري): Firebase Console ← Project settings ← Cloud Messaging ← Web Push certificates
 const VAPID_KEY = '';
+const NATIVE = window.SoraNative || null; // داخل تطبيق الأندرويد
+let nativeNotif = null;
 const TRACK_URL = 'https://qaesartools-web.github.io/sora3a-captain/?order=';
 const SCOPE = '/sora3a-captain/';
 
@@ -805,7 +807,7 @@ function renderBanners() {
   const b = [];
   if (gpsState === 'denied') b.push(`<div class="banner warn">📍 اسمح بالوصول للموقع حتى يتابعك المطعم والزبون</div>`);
   else if (gpsState === 'error') b.push(`<div class="banner warn">📍 GPS غير متاح حالياً</div>`);
-  const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
+  const perm = NATIVE ? (nativeNotif === false ? 'denied' : 'granted') : ('Notification' in window) ? Notification.permission : 'unsupported';
   if (perm === 'default') b.push(`<div class="banner info">🔔 الإشعارات غير مفعّلة <button data-act="enable-notif">تفعيل</button></div>`);
   else if (perm === 'denied') b.push(`<div class="banner warn">🔕 الإشعارات محظورة <button data-act="enable-notif">كيف أفعّلها؟</button></div>`);
   else if (perm === 'unsupported' && isIos() && !isStandalone()) b.push(`<div class="banner info">📲 للإشعارات على آيفون: اضغط مشاركة ← "إضافة إلى الشاشة الرئيسية" وافتح التطبيق منها</div>`);
@@ -823,6 +825,7 @@ async function registerSw() {
 // onLogin=true: تظهر نافذة طلب الإذن مباشرة بعد تسجيل الدخول
 async function setupNotifications(onLogin, fromButton) {
   renderBanners();
+  if (NATIVE) { if (fromButton && nativeNotif === false) NATIVE.openNotificationSettings(); else await registerPush(); return; }
   if (!('Notification' in window)) return;
   if (Notification.permission === 'granted') { await registerPush(); return; }
   if (Notification.permission === 'denied') {
@@ -846,7 +849,31 @@ $('notifAllow').addEventListener('click', async () => {
 });
 $('notifLater').addEventListener('click', () => sheet('notifSheet', false));
 
+// داخل تطبيق الأندرويد: الإذن والرمز من التطبيق نفسه (رنة أصلية حتى والتطبيق مسكّر)
+function nativeToken() {
+  return new Promise((res) => {
+    const t = setTimeout(() => res({ token: '', err: 'timeout' }), 30000);
+    window.__soraNativeToken = (token, err, allowed) => { clearTimeout(t); res({ token, err, allowed }); };
+    NATIVE.requestToken();
+  });
+}
+async function saveToken(token) {
+  const ref = doc(db, 'pushTokens', me.uid);
+  let tokens = [];
+  try { const s = await getDoc(ref); tokens = s.exists() ? (s.data().tokens || []) : []; } catch {}
+  tokens = [token, ...tokens.filter((t) => t !== token)].slice(0, 5);
+  await setDoc(ref, { tokens, role: 'captain', captainId: me.captainId, restaurantId: me.restaurantId, updatedAtMs: Date.now() });
+}
+
 async function registerPush() {
+  if (NATIVE) {
+    if (!me) return;
+    const r = await nativeToken();
+    nativeNotif = r.allowed !== false; renderBanners();
+    if (!r.token) { if (r.allowed !== false) toast('⚠️ تعذّر تفعيل الإشعارات: ' + (r.err || '')); return; }
+    try { await saveToken(r.token); } catch (e) { console.warn('push', e); }
+    return;
+  }
   const reg = swReg || await registerSw();
   if (!reg || !me) return;
   try {
@@ -857,11 +884,7 @@ async function registerPush() {
     if (VAPID_KEY) opts.vapidKey = VAPID_KEY;
     const token = await getToken(messaging, opts);
     if (!token) return;
-    const ref = doc(db, 'pushTokens', me.uid);
-    let tokens = [];
-    try { const s = await getDoc(ref); tokens = s.exists() ? (s.data().tokens || []) : []; } catch {}
-    tokens = [token, ...tokens.filter((t) => t !== token)].slice(0, 5);
-    await setDoc(ref, { tokens, role: 'captain', captainId: me.captainId, restaurantId: me.restaurantId, updatedAtMs: Date.now() });
+    await saveToken(token);
     if (!msgBound) {
       msgBound = true;
       // التطبيق مفتوح: الرنين داخل التطبيق يكفي، وبالخلفية نعرض إشعاراً
