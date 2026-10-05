@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">سرعة - الكابتن</string>
+    <string name="channel_orders">طلبات التوصيل</string>
+    <string name="channel_orders_desc">رنة طويلة لكل طلب توصيل جديد</string>
+</resources>
