@@ -270,7 +270,7 @@ const firebaseConfig = {
 const VAPID_KEY = '';
 const NATIVE = window.SoraNative || null; // داخل تطبيق الأندرويد
 const APK_URL = 'https://github.com/qaesartools-web/sora3a-captain/releases/latest/download/sora3a-captain.apk';
-let nativeNotif = null;
+let nativeNotif = null, nativeFg = true;
 const TRACK_URL = 'https://qaesartools-web.github.io/sora3a-captain/?order=';
 const SCOPE = '/sora3a-captain/';
 
@@ -573,9 +573,15 @@ function openIncoming(o) {
   $('inVal').textContent = fmt(o.value) + ' د.ع';
   $('inNotes').textContent = o.notes || '—';
   $('acceptBtn').dataset.oid = o.id; $('rejectBtn').dataset.oid = o.id;
-  sheet('incoming', true); startRing();
+  sheet('incoming', true);
+  // داخل تطبيق الأندرويد والتطبيق بالخلفية: التطبيق نفسه يرن بالإشعار — ما نرن مرتين
+  if (!(NATIVE && !nativeFg)) startRing();
 }
 function closeIncoming() { ringing = null; sheet('incoming', false); stopRing(); }
+// الكابتن شاف الطلب ولمس الشاشة: نوقف الرنة (الطلب يبقى ظاهر لحد ما يقبل أو يرفض)
+$('incoming').addEventListener('pointerdown', () => { if (ringing) stopRing(); }, { passive: true });
+// تطبيق الأندرويد يبلغنا إذا الكابتن فتحه أو طلع منه
+window.__soraFg = (fg) => { nativeFg = !!fg; if (!fg && ringing) stopRing(); };
 $('acceptBtn').addEventListener('click', (e) => accept(e.currentTarget.dataset.oid));
 $('rejectBtn').addEventListener('click', (e) => reject(e.currentTarget.dataset.oid));
 
