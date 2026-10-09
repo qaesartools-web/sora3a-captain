@@ -287,7 +287,7 @@ let restName = '';
 const mine = new Map(), pool = new Map();
 let unsubs = [];
 let gpsWatch = null, lastGps = 0, lastTrackLoc = 0, gpsState = 'wait';
-let ringing = null, ringTimer = null, audioCtx = null;
+let ringing = null, ringTimer = null, audioCtx = null, ringSeq = 0;
 let waOrder = null, swReg = null, msgBound = false;
 const photos = {};
 const seenPending = new Set();
@@ -604,13 +604,18 @@ function beep() {
 }
 function startRing() {
   stopRing(); unlockAudio();
+  // كل رنّة إلها رقم: إذا وقفت (قبل/رفض/لمسة) قبل ما يشتغل الصوت، ما نبدّل للصفّارة الاحتياطية
+  // (قبل: الإيقاف السريع يرفض تشغيل الصوت ← تشتغل صفّارة ثانية وما توقف إلا بسدّ التطبيق)
+  const seq = ++ringSeq;
+  const fallback = () => { if (seq !== ringSeq || ringTimer) return; beep(); ringTimer = setInterval(beep, 1100); };
   // صوت الرنين كملف صوتي: يكمل يرن حتى والشاشة مطفية (وضع الاستلام)
-  if (ringAudio) { try { ringAudio.currentTime = 0; ringAudio.volume = 1; } catch {} ringAudio.play().then(() => {}).catch(() => { beep(); ringTimer = setInterval(beep, 1100); }); }
-  else { beep(); ringTimer = setInterval(beep, 1100); }
+  if (ringAudio) { try { ringAudio.currentTime = 0; ringAudio.volume = 1; } catch {} ringAudio.play().catch((e) => { if (!e || e.name !== 'AbortError') fallback(); }); }
+  else fallback();
   vibTimer = setInterval(() => { if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 400]); }, 2200);
   if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 400]);
 }
 function stopRing() {
+  ringSeq++;
   if (ringTimer) clearInterval(ringTimer); ringTimer = null;
   if (vibTimer) clearInterval(vibTimer); vibTimer = null;
   try { ringAudio && ringAudio.pause(); } catch {}
@@ -645,7 +650,7 @@ async function startStandby() {
   }
   try { if (keepAudio.paused) await keepAudio.play(); } catch {}
   // تهيئة صوت الرنين بلمسة الكابتن (المتصفح يمنع تشغيل الصوت بدون لمسة)
-  try { if (ringAudio.paused && !ringing) { ringAudio.volume = 0; await ringAudio.play(); ringAudio.pause(); ringAudio.volume = 1; } } catch {}
+  try { if (ringAudio.paused && !ringing) { ringAudio.volume = 0; await ringAudio.play(); if (!ringing) ringAudio.pause(); ringAudio.volume = 1; } } catch {}
   await keepScreenOn();
   renderStandby();
 }
@@ -669,7 +674,7 @@ function renderStandby() {
   el.textContent = live ? (wakeLock ? '🔔 وضع الاستلام شغّال — يرن حتى والشاشة مطفية • 🔆 الشاشة تبقى شغالة' : '🔔 وضع الاستلام شغّال — يرن حتى والشاشة مطفية') : '🔕 اضغط هنا حتى يرن الطلب والشاشة مطفية';
 }
 $('stbyChip').addEventListener('click', () => startStandby());
-window.__stby = () => ({ standby, keep: !!keepAudio && !keepAudio.paused, ring: !!ringAudio && !ringAudio.paused });
+window.__stby = () => ({ standby, keep: !!keepAudio && !keepAudio.paused, ring: !!ringAudio && !ringAudio.paused, beeping: !!ringTimer });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden || !standby) return;
   keepScreenOn();
