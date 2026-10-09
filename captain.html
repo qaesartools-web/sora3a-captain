@@ -255,7 +255,7 @@ import { initializeAuth, browserLocalPersistence, indexedDBLocalPersistence, sig
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, query, where, onSnapshot, runTransaction, arrayUnion }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getMessaging, getToken, onMessage, isSupported }
+import { getMessaging, getToken, deleteToken, onMessage, isSupported }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
 
 const firebaseConfig = {
@@ -271,6 +271,8 @@ const VAPID_KEY = '';
 const NATIVE = window.SoraNative || null; // داخل تطبيق الأندرويد
 const APK_URL = 'https://github.com/qaesartools-web/sora3a-captain/releases/latest/download/sora3a-captain.apk';
 let nativeNotif = null, nativeFg = true;
+// المتصفح وتطبيق الأندرويد على نفس الحساب: التطبيق هو اللي يرن، والمتصفح ما يطلّع إشعارات (حتى ما يبقى إشعار ثاني معلّق)
+let nativeElsewhere = false;
 const TRACK_URL = 'https://qaesartools-web.github.io/sora3a-captain/?order=';
 const SCOPE = '/sora3a-captain/';
 
@@ -577,7 +579,7 @@ function openIncoming(o) {
   // داخل تطبيق الأندرويد والتطبيق بالخلفية: التطبيق نفسه يرن بالإشعار — ما نرن مرتين
   if (!(NATIVE && !nativeFg)) startRing();
 }
-function closeIncoming() { ringing = null; sheet('incoming', false); stopRing(); }
+function closeIncoming() { ringing = null; sheet('incoming', false); stopRing(); clearNotifs(); }
 // الكابتن شاف الطلب ولمس الشاشة: نوقف الرنة (الطلب يبقى ظاهر لحد ما يقبل أو يرفض)
 $('incoming').addEventListener('pointerdown', () => { if (ringing) stopRing(); }, { passive: true });
 // تطبيق الأندرويد يبلغنا إذا الكابتن فتحه أو طلع منه
@@ -865,14 +867,29 @@ function nativeToken() {
     NATIVE.requestToken();
   });
 }
+// يرجّع false إذا المتصفح ما سجّل (تطبيق الأندرويد مسجّل وشغّال على هذا الحساب)
 async function saveToken(token) {
   const ref = doc(db, 'pushTokens', me.uid);
-  let tokens = [];
-  try { const s = await getDoc(ref); tokens = s.exists() ? (s.data().tokens || []) : []; } catch {}
-  // تطبيق الأندرويد يلغي تسجيلات الويب القديمة (حتى ما يرن مرتين على نفس التلفون)
-  tokens = NATIVE ? [token] : [token, ...tokens.filter((t) => t !== token)].slice(0, 5);
-  await setDoc(ref, { tokens, role: 'captain', captainId: me.captainId, restaurantId: me.restaurantId, updatedAtMs: Date.now() });
+  let d = {};
+  try { const s = await getDoc(ref); d = s.exists() ? s.data() : {}; } catch {}
+  const tokens = d.tokens || [], base = { role: 'captain', captainId: me.captainId, restaurantId: me.restaurantId, updatedAtMs: Date.now() };
+  if (NATIVE) {
+    // تطبيق الأندرويد يلغي تسجيلات الويب (حتى ما يجي إشعارين على نفس التلفون ويبقى واحد معلّق)
+    try { await setDoc(ref, { tokens: [token], native: token, ...base }); }
+    catch (e) { await setDoc(ref, { tokens: [token], ...base }); }   // قواعد Firebase القديمة (بدون native)
+    return true;
+  }
+  // المتصفح ما يرجع يسجّل نفسه ما دام تطبيق الأندرويد مسجّل وشغّال
+  if (d.native && tokens.includes(d.native)) return false;
+  await setDoc(ref, { tokens: [token, ...tokens.filter((t) => t !== token)].slice(0, 5), ...base });
+  return true;
 }
+// نسكّر إشعارات الطلبات اللي بقت بشريط الإشعارات (فتح التطبيق، قبول أو رفض الطلب)
+async function clearNotifs() {
+  if (NATIVE || !('serviceWorker' in navigator)) return;
+  try { const reg = swReg || await navigator.serviceWorker.getRegistration(SCOPE); (reg ? await reg.getNotifications() : []).forEach((n) => n.close()); } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) clearNotifs(); });
 
 async function registerPush() {
   if (NATIVE) {
@@ -893,7 +910,12 @@ async function registerPush() {
     if (VAPID_KEY) opts.vapidKey = VAPID_KEY;
     const token = await getToken(messaging, opts);
     if (!token) return;
-    await saveToken(token);
+    if (!(await saveToken(token))) {
+      // تطبيق الأندرويد هو اللي يرن على هذا الحساب: نلغي اشتراك المتصفح ونسكّر إشعاراته
+      nativeElsewhere = true; clearNotifs();
+      try { await deleteToken(messaging); } catch (e) {}
+      return;
+    }
     if (!msgBound) {
       msgBound = true;
       // التطبيق مفتوح: الرنين داخل التطبيق يكفي، وبالخلفية نعرض إشعاراً
@@ -904,6 +926,7 @@ async function registerPush() {
 
 // إشعار محلي عندما يكون التطبيق بالخلفية (يعمل حتى بدون Cloud Functions)
 async function localNotify(o, data) {
+  if (nativeElsewhere) return;
   if (!document.hidden || !('Notification' in window) || Notification.permission !== 'granted') return;
   const reg = swReg || (await navigator.serviceWorker?.getRegistration(SCOPE));
   if (!reg) return;
