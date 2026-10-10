@@ -79,6 +79,8 @@ const fmt = (n) => Number(n || 0).toLocaleString('en-US');
 const orderId = new URLSearchParams(location.search).get('order') || new URLSearchParams(location.search).get('id') || '';
 
 const ST = {
+  preparing:  { ic: '🍳', t: 'المطعم يجهّز طلبك', s: 'أول ما يجهز يطلع ويا الكابتن', i: -1 },
+  ready:      { ic: '📦', t: 'طلبك جاهز', s: 'دا نختار كابتن يوصله إلك', i: -1 },
   pending:    { ic: '🟡', t: 'بانتظار قبول الكابتن', s: 'المطعم يجهّز طلبك', i: -1 },
   accepted:   { ic: '🔵', t: 'الكابتن قبل طلبك', s: 'الكابتن في طريقه للمطعم', i: 0 },
   pickup:     { ic: '🟠', t: 'الكابتن استلم طلبك', s: 'سينطلق إليك خلال لحظات', i: 1 },
