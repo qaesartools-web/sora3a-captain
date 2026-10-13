@@ -298,6 +298,8 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmt = (n) => Number(n || 0).toLocaleString('en-US');
 const nowT = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+// عرض الوقت بنظام 12 ساعة (ص/م) — الوقت المخزون يبقى مثل ما هو
+const t12 = (v) => { const x = v == null ? '' : String(v), m = /^(\d{1,2}):(\d{2})$/.exec(x.trim()); if (!m || +m[1] > 23) return x; const h = +m[1]; return ((h % 12) || 12) + ':' + m[2] + ' ' + (h < 12 ? 'ص' : 'م'); };
 const shortId = (id) => String(id).substring(0, 6).toUpperCase();
 const show = (el, on = true) => el.classList.toggle('hidden', !on);
 // يحدّث المحتوى فقط إذا تغيّر — حتى لا تضيع ضغطة الكابتن أثناء التحديث المباشر
@@ -521,7 +523,7 @@ function renderHistory() {
     (done.length ? done.slice(0, 60).map((o) => `<div class="card" style="padding:12px">
       <div class="order-top" style="margin-bottom:4px"><span class="oid">#${esc(shortId(o.id))}</span><span class="badge b-delivered">+${fmt(o.fee)} د.ع</span></div>
       <div class="row muted" style="font-size:13px"><span class="ic">📍</span><span>${esc(o.address || '—')}</span></div>
-      <div class="row muted" style="font-size:12px"><span class="ic">🕐</span><span>${o.deliveredAtMs ? esc(new Date(o.deliveredAtMs).toLocaleString('ar-IQ-u-nu-latn')) : esc(o.deliveredAt || '')}</span></div>
+      <div class="row muted" style="font-size:12px"><span class="ic">🕐</span><span>${o.deliveredAtMs ? esc(new Date(o.deliveredAtMs).toLocaleString('ar-IQ-u-nu-latn', { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })) : esc(t12(o.deliveredAt))}</span></div>
     </div>`).join('') : `<div class="card empty"><div class="i">📊</div>لا توجد توصيلات بعد</div>`));
 }
 
