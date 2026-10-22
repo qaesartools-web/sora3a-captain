@@ -362,7 +362,8 @@ onAuthStateChanged(auth, async (user) => {
     if (!captainId || !restaurantId) return deny('⚠️ حسابك يحتاج تحديث من الإدارة. تواصل مع المطعم.');
     // خدمة الكابتن يفتحها ويغلقها المدير الأعلى لكل مطعم
     const rs = await getDoc(doc(db, 'restaurants', restaurantId)).catch(() => null);
-    const svcOff = (r) => !!(r && r.exists() && r.data().features && r.data().features.captain === false);
+    // والبرج يشغّلها، وصاحب المطعم يكدر يوقفها ويرجّعها (svcOff)
+    const svcOff = (r) => !!(r && r.exists() && ((r.data().features && r.data().features.captain === false) || (r.data().svcOff && r.data().svcOff.captain === true)));
     if (svcOff(rs)) return deny(SVC_OFF);
     const c = await getDoc(doc(db, 'captains', captainId));
     if (!c.exists() || c.data().userId !== user.uid) return deny('❌ حساب الكابتن محذوف');
