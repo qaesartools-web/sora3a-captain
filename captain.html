@@ -778,7 +778,13 @@ function accept(id) {
       document.querySelector('.nav button[data-tab="active"]').click();
     } catch (e) {
       closeIncoming();
-      toast(e.message === 'taken' ? '⚠️ الطلب أخذه كابتن آخر' : e.message === 'gone' ? '⚠️ الطلب أُلغي' : '❌ تعذّر قبول الطلب');
+      let why = e.message;
+      // كابتنين ضغطوا «قبول» بنفس اللحظة: الخسران ممكن يرجعله رفض من السيرفر بدل «taken» ← نشوف الطلب صار لمن
+      if (why !== 'taken' && why !== 'gone') {
+        try { const s = await getDoc(doc(db, 'orders', id)); if (!s.exists()) why = 'gone'; else if (s.data().captainId && s.data().captainId !== me.captainId && s.data().status !== 'pending') why = 'taken'; }
+        catch (_) { if (e.code === 'permission-denied') why = 'taken'; }
+      }
+      toast(why === 'taken' ? '⚠️ الطلب أخذه كابتن آخر' : why === 'gone' ? '⚠️ الطلب أُلغي' : '❌ تعذّر قبول الطلب');
     }
   }, 'accept');
 }
