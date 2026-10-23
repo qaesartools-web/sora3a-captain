@@ -285,8 +285,10 @@ let me = null;          // users/{uid} + uid  (captainId, restaurantId)
 let capDoc = null;      // captains/{captainId}
 let restName = '';
 const mine = new Map(), pool = new Map();
-// طلباتي = الشغّالة هسه (mineA) + آخر 30 يوم للسجل والأرباح (mineH) — بدل كل طلباتي من أول يوم
-const mineA = new Map(), mineH = new Map();
+// طلباتي = الشغّالة هسه (mineA، مباشر) + طلبات اليوم (mineT، مباشر) + الأيام السابقة للسجل (mineOld، تنجاب مرة لما تفتح «السجل»)
+//  بدل كل طلباتي من أول يوم — وبدون مستمع على 30 يوم (السيرفر يحسبه 30 مستمع لكل كابتن ويثقل على كل طلب)
+const mineA = new Map(), mineT = new Map(), mineOld = new Map();
+let oldAt = 0, oldDay = '', histLegacy = false;
 let unsubs = [];
 let gpsWatch = null, lastGps = 0, lastTrackLoc = 0, gpsState = 'wait';
 let ringing = null, ringTimer = null, audioCtx = null, ringSeq = 0;
@@ -382,7 +384,7 @@ onAuthStateChanged(auth, async (user) => {
 
 function stopAll() {
   unsubs.forEach((u) => u && u()); unsubs = [];
-  mine.clear(); mineA.clear(); mineH.clear(); pool.clear(); seenPending.clear();
+  mine.clear(); mineA.clear(); mineT.clear(); mineOld.clear(); oldAt = 0; oldDay = ''; histLegacy = false; pool.clear(); seenPending.clear();
   if (gpsWatch !== null) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; }
   closeIncoming();
 }
@@ -414,34 +416,50 @@ function enterApp() {
 }
 
 // طلباتي بدون ما ننزّل كل اللي وصّلته من أول يوم:
-//   • الشغّالة هسه (معلّقة/مقبولة/بالمطعم/بالطريق) من أي يوم
-//   • آخر 30 يوم (حقل day بتوقيت بغداد) للسجل وأرباح اليوم — ويتجدد بعد نص الليل
+//   • الشغّالة هسه (معلّقة/مقبولة/بالمطعم/بالطريق) من أي يوم — مباشر
+//   • طلبات اليوم (حقل day بتوقيت بغداد) لأرباح اليوم والسجل — مباشر، ويتجدد بعد نص الليل
+//   • آخر 30 يوم للسجل: تنجاب مرة وحدة لما يفتح «السجل» (وتتحدث إذا رجع له بعد 5 دقايق)
 //  (== و in بس ← تكفيها فهارس الحقل الواحد، وقواعد الحماية تسمح لأن captainId == كابتنّي)
 //  وإذا السيرفر رفض الاستعلام المحدود نرجع للقديم (كل طلباتي) حتى ما يوكف التطبيق
 const ACTIVE_ST = ['pending', 'accepted', 'pickup', 'delivering'], HIST_DAYS = 30;
 const bagDay = (ms) => new Date(ms + 3 * 3600000).toISOString().slice(0, 10);
 const histDays = () => Array.from({ length: HIST_DAYS }, (_, i) => bagDay(Date.now() - i * 86400000));
+function remine() { mine.clear(); [mineOld, mineT, mineA].forEach((m) => m.forEach((o, id) => mine.set(id, o))); refresh(); }
 function listenMine() {
   const col = collection(db, 'orders'), cid = me.captainId;
-  let histDay = '', histUnsub = null, legacy = false;
-  const into = (m) => (s) => { m.clear(); s.forEach((d) => m.set(d.id, { id: d.id, ...d.data() })); mine.clear(); mineH.forEach((o, id) => mine.set(id, o)); mineA.forEach((o, id) => mine.set(id, o)); refresh(); };
-  const stopHist = () => { if (histUnsub) { histUnsub(); histUnsub = null; } };
+  let todayKey = '', todayUnsub = null;
+  const into = (m) => (s) => { m.clear(); s.forEach((d) => m.set(d.id, { id: d.id, ...d.data() })); remine(); };
+  const stopToday = () => { if (todayUnsub) { todayUnsub(); todayUnsub = null; } };
   const onErr = (e) => {
-    if (legacy || e.code !== 'failed-precondition') { onListenErr(e); return; }
-    legacy = true; console.warn('captain orders: full query fallback', e.message);
-    stopHist(); mineA.clear();
-    unsubs.push(onSnapshot(query(col, where('captainId', '==', cid)), into(mineH), onListenErr));
+    if (histLegacy || e.code !== 'failed-precondition') { onListenErr(e); return; }
+    histLegacy = true; console.warn('captain orders: full query fallback', e.message);
+    stopToday(); mineA.clear(); mineOld.clear();
+    unsubs.push(onSnapshot(query(col, where('captainId', '==', cid)), into(mineT), onListenErr));
   };
-  const hist = () => {
+  const today = () => {
     const d = bagDay(Date.now());
-    if (legacy || (d === histDay && histUnsub)) return;
-    histDay = d; stopHist();
-    histUnsub = onSnapshot(query(col, where('captainId', '==', cid), where('day', 'in', histDays())), into(mineH), onErr);
+    if (histLegacy || (d === todayKey && todayUnsub)) return;
+    todayKey = d; stopToday();
+    todayUnsub = onSnapshot(query(col, where('captainId', '==', cid), where('day', '==', d)), into(mineT), onErr);
+    if (oldDay && oldDay !== d) { oldAt = 0; if (!$('tab-history').classList.contains('hidden')) loadHistory(); }   // يوم جديد ← السجل ينجاب من جديد
   };
   unsubs.push(onSnapshot(query(col, where('captainId', '==', cid), where('status', 'in', ACTIVE_ST)), into(mineA), onErr));
-  hist();
-  const t = setInterval(hist, 5 * 60000);
-  unsubs.push(() => { clearInterval(t); stopHist(); });
+  today();
+  const t = setInterval(today, 5 * 60000);
+  unsubs.push(() => { clearInterval(t); stopToday(); });
+}
+// الأيام السابقة (لحد 30 يوم) للسجل: مرة وحدة لما ينفتح، مو مستمع دائم
+async function loadHistory(force) {
+  if (!me || histLegacy) return;
+  const d = bagDay(Date.now());
+  if (!force && oldDay === d && Date.now() - oldAt < 5 * 60000) return;
+  const meNow = me;
+  try {
+    const s = await getDocs(query(collection(db, 'orders'), where('captainId', '==', meNow.captainId), where('day', 'in', histDays().slice(1))));
+    if (me !== meNow) return;
+    mineOld.clear(); s.forEach((x) => mineOld.set(x.id, { id: x.id, ...x.data() }));
+    oldAt = Date.now(); oldDay = d; remine();
+  } catch (e) { console.warn('history', e.code || e); }
 }
 
 function listen() {
@@ -551,7 +569,7 @@ function renderNew(list) {
 function renderHistory() {
   const done = [...mine.values()].filter((o) => o.status === 'delivered').sort((a, b) => (b.deliveredAtMs || 0) - (a.deliveredAtMs || 0));
   const total = done.reduce((s, o) => s + (o.fee || 0), 0);
-  setHtml($('tab-history'), `<div class="section-title">سجل التوصيلات — آخر ${HIST_DAYS} يوم</div>
+  setHtml($('tab-history'), `<div class="section-title">سجل التوصيلات — آخر ${HIST_DAYS} يوم${oldAt || histLegacy ? '' : ' <small class="muted">⏳ يحمّل الأيام السابقة…</small>'}</div>
     <div class="stats" style="grid-template-columns:1fr 1fr"><div class="stat"><b>${done.length}</b><span>التوصيلات</span></div><div class="stat"><b>${fmt(total)}</b><span>الأرباح د.ع</span></div></div>` +
     (done.length ? done.slice(0, 60).map((o) => `<div class="card" style="padding:12px">
       <div class="order-top" style="margin-bottom:4px"><span class="oid">#${esc(shortId(o.id))}</span><span class="badge b-delivered">+${fmt(o.fee)} د.ع</span></div>
@@ -567,6 +585,7 @@ document.querySelector('.nav').addEventListener('click', (e) => {
   const tab = b.dataset.tab;
   document.querySelectorAll('.nav button[data-tab]').forEach((x) => x.classList.toggle('on', x === b));
   ['active', 'new', 'history'].forEach((t) => show($('tab-' + t), t === tab));
+  if (tab === 'history') loadHistory();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 document.addEventListener('click', (e) => {
