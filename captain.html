@@ -285,13 +285,15 @@ let me = null;          // users/{uid} + uid  (captainId, restaurantId)
 let capDoc = null;      // captains/{captainId}
 let restName = '';
 const mine = new Map(), pool = new Map();
+// طلباتي = الشغّالة هسه (mineA) + آخر 30 يوم للسجل والأرباح (mineH) — بدل كل طلباتي من أول يوم
+const mineA = new Map(), mineH = new Map();
 let unsubs = [];
 let gpsWatch = null, lastGps = 0, lastTrackLoc = 0, gpsState = 'wait';
 let ringing = null, ringTimer = null, audioCtx = null, ringSeq = 0;
 let waOrder = null, swReg = null, msgBound = false;
 const photos = {};
 const seenPending = new Set();
-const busy = new Set();
+const busy = new Map();   // طلب ← العملية الشغّالة عليه هسه { act, p }
 
 // ── utils ──
 const $ = (id) => document.getElementById(id);
@@ -380,7 +382,7 @@ onAuthStateChanged(auth, async (user) => {
 
 function stopAll() {
   unsubs.forEach((u) => u && u()); unsubs = [];
-  mine.clear(); pool.clear(); seenPending.clear();
+  mine.clear(); mineA.clear(); mineH.clear(); pool.clear(); seenPending.clear();
   if (gpsWatch !== null) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; }
   closeIncoming();
 }
@@ -411,11 +413,41 @@ function enterApp() {
   setupNotifications(true);
 }
 
+// طلباتي بدون ما ننزّل كل اللي وصّلته من أول يوم:
+//   • الشغّالة هسه (معلّقة/مقبولة/بالمطعم/بالطريق) من أي يوم
+//   • آخر 30 يوم (حقل day بتوقيت بغداد) للسجل وأرباح اليوم — ويتجدد بعد نص الليل
+//  (== و in بس ← تكفيها فهارس الحقل الواحد، وقواعد الحماية تسمح لأن captainId == كابتنّي)
+//  وإذا السيرفر رفض الاستعلام المحدود نرجع للقديم (كل طلباتي) حتى ما يوكف التطبيق
+const ACTIVE_ST = ['pending', 'accepted', 'pickup', 'delivering'], HIST_DAYS = 30;
+const bagDay = (ms) => new Date(ms + 3 * 3600000).toISOString().slice(0, 10);
+const histDays = () => Array.from({ length: HIST_DAYS }, (_, i) => bagDay(Date.now() - i * 86400000));
+function listenMine() {
+  const col = collection(db, 'orders'), cid = me.captainId;
+  let histDay = '', histUnsub = null, legacy = false;
+  const into = (m) => (s) => { m.clear(); s.forEach((d) => m.set(d.id, { id: d.id, ...d.data() })); mine.clear(); mineH.forEach((o, id) => mine.set(id, o)); mineA.forEach((o, id) => mine.set(id, o)); refresh(); };
+  const stopHist = () => { if (histUnsub) { histUnsub(); histUnsub = null; } };
+  const onErr = (e) => {
+    if (legacy || e.code !== 'failed-precondition') { onListenErr(e); return; }
+    legacy = true; console.warn('captain orders: full query fallback', e.message);
+    stopHist(); mineA.clear();
+    unsubs.push(onSnapshot(query(col, where('captainId', '==', cid)), into(mineH), onListenErr));
+  };
+  const hist = () => {
+    const d = bagDay(Date.now());
+    if (legacy || (d === histDay && histUnsub)) return;
+    histDay = d; stopHist();
+    histUnsub = onSnapshot(query(col, where('captainId', '==', cid), where('day', 'in', histDays())), into(mineH), onErr);
+  };
+  unsubs.push(onSnapshot(query(col, where('captainId', '==', cid), where('status', 'in', ACTIVE_ST)), into(mineA), onErr));
+  hist();
+  const t = setInterval(hist, 5 * 60000);
+  unsubs.push(() => { clearInterval(t); stopHist(); });
+}
+
 function listen() {
-  // استعلامان فقط يسمح بهما نظام الحماية: طلباتي + المعلّقة في مطعمي
-  const q1 = query(collection(db, 'orders'), where('captainId', '==', me.captainId));
+  // استعلامات يسمح بها نظام الحماية: طلباتي + المعلّقة في مطعمي
+  listenMine();
   const q2 = query(collection(db, 'orders'), where('restaurantId', '==', me.restaurantId), where('status', '==', 'pending'));
-  unsubs.push(onSnapshot(q1, (s) => { mine.clear(); s.forEach((d) => mine.set(d.id, { id: d.id, ...d.data() })); refresh(); }, onListenErr));
   unsubs.push(onSnapshot(q2, (s) => { pool.clear(); s.forEach((d) => pool.set(d.id, { id: d.id, ...d.data() })); refresh(); }, onListenErr));
   unsubs.push(onSnapshot(doc(db, 'captains', me.captainId), (s) => {
     if (!s.exists()) { toast('تم حذف حسابك'); signOut(auth); return; }
@@ -519,8 +551,8 @@ function renderNew(list) {
 function renderHistory() {
   const done = [...mine.values()].filter((o) => o.status === 'delivered').sort((a, b) => (b.deliveredAtMs || 0) - (a.deliveredAtMs || 0));
   const total = done.reduce((s, o) => s + (o.fee || 0), 0);
-  setHtml($('tab-history'), `<div class="section-title">سجل التوصيلات</div>
-    <div class="stats" style="grid-template-columns:1fr 1fr"><div class="stat"><b>${done.length}</b><span>كل التوصيلات</span></div><div class="stat"><b>${fmt(total)}</b><span>كل الأرباح د.ع</span></div></div>` +
+  setHtml($('tab-history'), `<div class="section-title">سجل التوصيلات — آخر ${HIST_DAYS} يوم</div>
+    <div class="stats" style="grid-template-columns:1fr 1fr"><div class="stat"><b>${done.length}</b><span>التوصيلات</span></div><div class="stat"><b>${fmt(total)}</b><span>الأرباح د.ع</span></div></div>` +
     (done.length ? done.slice(0, 60).map((o) => `<div class="card" style="padding:12px">
       <div class="order-top" style="margin-bottom:4px"><span class="oid">#${esc(shortId(o.id))}</span><span class="badge b-delivered">+${fmt(o.fee)} د.ع</span></div>
       <div class="row muted" style="font-size:13px"><span class="ic">📍</span><span>${esc(o.address || '—')}</span></div>
@@ -686,7 +718,16 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ── order actions ──
-async function guard(id, fn) { if (!id || busy.has(id)) return; busy.add(id); try { await fn(); } finally { busy.delete(id); } }
+// عملية وحدة لكل طلب بنفس الوقت: نفس الضغطة مكررة تنتجاهل، والخطوة الجاية (مثلاً «انطلقت للزبون» بعد «استلمت»)
+// تنتظر اللي قبلها يأكدها السيرفر وبعدين تشتغل — بالنت البطيء الزر يطلع قبل التأكيد، فما نخلي الضغطة تضيع
+async function guard(id, fn, act = '') {
+  if (!id) return;
+  const cur = busy.get(id);
+  if (cur && cur.act === act) return;
+  const job = { act, p: (cur ? cur.p.catch(() => {}) : Promise.resolve()).then(fn) };
+  busy.set(id, job);
+  try { await job.p; } finally { if (busy.get(id) === job) busy.delete(id); }
+}
 
 async function syncTracking(id, fields) {
   try { await setDoc(doc(db, 'tracking', id), { ...fields, updatedAtMs: Date.now() }, { merge: true }); }
@@ -720,7 +761,7 @@ function accept(id) {
       closeIncoming();
       toast(e.message === 'taken' ? '⚠️ الطلب أخذه كابتن آخر' : e.message === 'gone' ? '⚠️ الطلب أُلغي' : '❌ تعذّر قبول الطلب');
     }
-  });
+  }, 'accept');
 }
 
 function reject(id) {
@@ -735,7 +776,7 @@ function reject(id) {
       });
       closeIncoming(); toast('تم رفض الطلب');
     } catch { toast('❌ تعذّر الرفض'); }
-  });
+  }, 'reject');
 }
 
 function advance(id, status) {
@@ -748,7 +789,7 @@ function advance(id, status) {
       syncTracking(id, { status });
       toast(status === 'pickup' ? '📍 استلمت الطلب' : '🛵 بالتوفيق!');
     } catch { toast('❌ تعذّر التحديث'); }
-  });
+  }, status);
 }
 
 function takePhoto(id, input) {
@@ -782,7 +823,7 @@ function complete(id) {
       delete photos[id];
       toast(`✅ أحسنت! +${fmt(o.fee)} د.ع`);
     } catch (e) { console.error(e); toast('❌ تعذّر إتمام الطلب'); }
-  });
+  }, 'done');
 }
 
 // ── whatsapp ──
