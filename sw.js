@@ -1,5 +1,5 @@
 // سرعة — الكابتن: Service Worker (تخزين مؤقت + إشعارات الخلفية)
-const CACHE_VERSION = 'captain-v17';
+const CACHE_VERSION = 'captain-v18';
 const CACHE_NAME = `app-cache-${CACHE_VERSION}`;
 const SCOPE = '/sora3a-captain/';
 const PRECACHE = [SCOPE, SCOPE + 'captain.html', SCOPE + 'manifest.json', SCOPE + 'icon-192.png'];
@@ -13,7 +13,7 @@ firebase.initializeApp({
   projectId: 'sora3a-system',
   storageBucket: 'sora3a-system.firebasestorage.app',
   messagingSenderId: '516304449260',
-  appId: '1:516304449260:web:e0d2e20d8964e4d6656733',
+  appId: '1:516304449260:web:0110ba6c2621d6a16dbfc9',
 });
 const messaging = firebase.messaging();
 // رسائل بدون notification (data فقط) نعرضها بأنفسنا؛ الرسائل التي فيها notification يعرضها Firebase تلقائياً
