@@ -295,7 +295,7 @@ const mine = new Map(), pool = new Map();
 const mineA = new Map(), mineT = new Map(), mineOld = new Map();
 let oldAt = 0, oldDay = '', histLegacy = false;
 let unsubs = [];
-let gpsWatch = null, lastGps = 0, lastTrackLoc = 0, gpsState = 'wait';
+let gpsWatch = null, lastGps = 0, gpsState = 'wait', poolUnsub = null;
 let ringing = null, ringTimer = null, audioCtx = null, ringSeq = 0;
 let waOrder = null, swReg = null, msgBound = false;
 const photos = {};
@@ -391,6 +391,7 @@ function stopAll() {
   unsubs.forEach((u) => u && u()); unsubs = [];
   mine.clear(); mineA.clear(); mineT.clear(); mineOld.clear(); oldAt = 0; oldDay = ''; histLegacy = false; pool.clear(); seenPending.clear();
   if (gpsWatch !== null) { navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; }
+  lastGps = 0; lastFix = null; lastSent = null; trackSent.clear();
   closeIncoming();
 }
 
@@ -470,12 +471,20 @@ async function loadHistory(force) {
 function listen() {
   // استعلامات يسمح بها نظام الحماية: طلباتي + المعلّقة في مطعمي
   listenMine();
-  const q2 = query(collection(db, 'orders'), where('restaurantId', '==', me.restaurantId), where('status', '==', 'pending'));
-  unsubs.push(onSnapshot(q2, (s) => { pool.clear(); s.forEach((d) => pool.set(d.id, { id: d.id, ...d.data() })); refresh(); }, onListenErr));
+  unsubs.push(() => { if (poolUnsub) { poolUnsub(); poolUnsub = null; } pool.clear(); });
   unsubs.push(onSnapshot(doc(db, 'captains', me.captainId), (s) => {
     if (!s.exists()) { toast('تم حذف حسابك'); signOut(auth); return; }
-    capDoc = { id: s.id, ...s.data() }; renderAvail(); refresh();
+    capDoc = { id: s.id, ...s.data() }; poolSync(); renderAvail(); refresh();
   }, onListenErr));
+}
+// الطلبات المعلّقة بالمطعم: بس والكابتن «متاح» (غير متاح ما تنعرض عليه، فما نتابعها ونصرف قراءات على كل تحديث)
+//  الطلب اللي ينطي لي مباشرة يوصل من «طلباتي» حتى لو غير متاح
+function poolSync() {
+  const want = !!me && !!capDoc && capDoc.available !== false;
+  if (want && !poolUnsub) {
+    const q2 = query(collection(db, 'orders'), where('restaurantId', '==', me.restaurantId), where('status', '==', 'pending'));
+    poolUnsub = onSnapshot(q2, (s) => { pool.clear(); s.forEach((d) => pool.set(d.id, { id: d.id, ...d.data() })); refresh(); }, onListenErr);
+  } else if (!want && poolUnsub) { poolUnsub(); poolUnsub = null; pool.clear(); }
 }
 function onListenErr(e) { console.error(e); if (e.code === 'permission-denied') toast('⛔ لا تملك صلاحية — تواصل مع الإدارة'); }
 
@@ -868,27 +877,51 @@ $('waSend').addEventListener('click', () => {
 $('waSkip').addEventListener('click', () => { waOrder = null; sheet('waSheet', false); });
 
 // ── GPS ──
+// الموقع يترفع لما الكابتن يتحرك (كل 25 ثانية إذا مشى 40 متر)، وإذا واقف كل دقيقة ونص بس — حتى يبقى «شغّال» بخارطة المطعم والبرج (دقيقتين).
+//  غير متاح وما عنده طلب: كل 5 دقايق. صفحة تتبع الزبون: كل 30 ثانية إذا تحرك، وكل 75 ثانية إذا واقف (الصفحة تكتب «آخر موقع معروف» بعد 90 ثانية).
+//  قبل: كل 8 ثواني للموقع و15 للتتبع حتى لو الكابتن واقف — هذا كان أغلب كلفة السيرفر
+const GPS = { move: 25000, beat: 90000, idle: 5 * 60000, minM: 40, trackMove: 30000, trackBeat: 75000, trackM: 30, tick: 30000, ...(window.__gps || {}) };
+let lastFix = null, lastSent = null;
+const trackSent = new Map();   // طلب ← {at, lat, lng}: آخر موقع انرسل لصفحة تتبعه
+const distM = (a, b) => {
+  const r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLng = (b.lng - a.lng) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLng / 2) ** 2;
+  return 12742000 * Math.asin(Math.sqrt(h));
+};
+function pushGps(now) {
+  if (!me || !lastFix) return;
+  const act = activeOrders(), idle = capDoc?.available === false && !act.length;
+  const since = now - lastGps, moved = lastSent ? distM(lastSent, lastFix) : Infinity;
+  if (idle ? since >= GPS.idle : (since >= GPS.beat || (since >= GPS.move && moved >= GPS.minM))) {
+    lastGps = now; lastSent = { ...lastFix };
+    const { lat, lng, accuracy } = lastFix;
+    setDoc(doc(db, 'captainLocations', me.captainId), {
+      captainId: me.captainId, captainName: capDoc?.name || '', restaurantId: me.restaurantId, lat, lng, accuracy, timestamp: now,
+    }).catch((e) => console.warn('gps', e.code));
+  }
+  // تحديث موقعي في صفحات تتبع الزبائن (الطلب الجديد ياخذ موقعي فوراً)
+  const live = new Set(act.map((o) => o.id));
+  [...trackSent.keys()].forEach((id) => { if (!live.has(id)) trackSent.delete(id); });
+  act.forEach((o) => {
+    const t = trackSent.get(o.id), ago = t ? now - t.at : Infinity;
+    if (ago >= GPS.trackBeat || (ago >= GPS.trackMove && distM(t, lastFix) >= GPS.trackM)) {
+      trackSent.set(o.id, { at: now, lat: lastFix.lat, lng: lastFix.lng });
+      syncTracking(o.id, { lat: lastFix.lat, lng: lastFix.lng, locTs: now });
+    }
+  });
+}
 function startGps() {
   if (!navigator.geolocation) { gpsState = 'error'; renderBanners(); return; }
-  gpsWatch = navigator.geolocation.watchPosition(async (pos) => {
+  gpsWatch = navigator.geolocation.watchPosition((pos) => {
     if (gpsState !== 'ok') { gpsState = 'ok'; renderBanners(); }
-    const now = Date.now();
-    if (!me || now - lastGps < 8000) return;
-    lastGps = now;
     const { latitude: lat, longitude: lng, accuracy } = pos.coords;
-    try {
-      await setDoc(doc(db, 'captainLocations', me.captainId), {
-        captainId: me.captainId, captainName: capDoc?.name || '', restaurantId: me.restaurantId, lat, lng, accuracy, timestamp: now,
-      });
-    } catch (e) { console.warn('gps', e.code); }
-    // تحديث موقعي في صفحات تتبع الزبائن
-    if (now - lastTrackLoc > 15000) {
-      lastTrackLoc = now;
-      activeOrders().forEach((o) => syncTracking(o.id, { lat, lng, locTs: now }));
-    }
+    lastFix = { lat, lng, accuracy };
+    pushGps(Date.now());
   }, (err) => { gpsState = err.code === 1 ? 'denied' : 'error'; renderBanners(); },
   { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
 }
+// الكابتن واقف والتلفون ما يطلّع موقع جديد: نذكّر بآخر موقع حتى ما يطلع «متوقف»
+setInterval(() => { if (gpsWatch !== null && gpsState === 'ok') pushGps(Date.now()); }, GPS.tick);
 
 // ── banners ──
 function renderBanners() {
