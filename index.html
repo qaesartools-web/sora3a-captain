@@ -8,7 +8,8 @@
 <meta name="referrer" content="no-referrer">
 <title>تتبع طلبك — سرعة</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Reem+Kufi:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="brand.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
   integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
@@ -18,9 +19,10 @@
   --accent:#008b2c;--accent2:#00b84a;--accent-soft:rgba(0,139,44,.1);--amber:#d97706;--shadow:0 8px 28px rgba(16,36,24,.08);}
 @media (prefers-color-scheme:dark){:root{--bg:#0d1410;--panel:#152019;--panel2:#1b2920;--line:#25362b;--text:#e7f1ea;--muted:#8fa597;--accent:#1fbf55;--accent2:#34d36b;--accent-soft:rgba(31,191,85,.14);--shadow:0 8px 28px rgba(0,0,0,.35);}}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Tajawal',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+body{font-family:'IBM Plex Sans Arabic',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:var(--sbF,0px);}
 .hdr{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;padding:calc(18px + env(safe-area-inset-top)) 16px 46px;text-align:center;}
 .hdr .logo{width:52px;height:52px;display:block;margin:0 auto 6px;}
+html.sb-on .hdr{padding-top:18px}
 .hdr h1{font-size:20px;font-weight:900;margin-top:2px;}
 .hdr p{font-size:12px;opacity:.9;}
 .wrap{max-width:600px;margin:-30px auto 0;padding:0 14px 24px;}
@@ -56,12 +58,14 @@ body{font-family:'Tajawal',system-ui,sans-serif;background:var(--bg);color:var(-
 </style>
 </head>
 <body>
-<div class="hdr"><img class="logo" src="logo.svg" alt="شعار سرعة"><h1>تتبع طلبك</h1><p>منصة سرعة للتوصيل</p></div>
+<script src="brand.js"></script>
+<script>window.SB && SB.mount('tracking', { splash: false })</script>
+<div class="hdr"><h1>تتبع طلبك</h1><p>منصة سرعة للتوصيل</p></div>
 <div class="wrap" id="root"><div class="card msg"><div class="ic">⏳</div><h2>جاري تحميل الطلب…</h2></div></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyAwlFrbv-c6G0_K0-s0P1m1o_qD95aGGyQ",
@@ -77,6 +81,7 @@ const appCheck = (a) => { if (!/\.github\.io$/.test(location.hostname)) return; 
   import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-check.js').then((m) => m.initializeAppCheck(a, { provider: new m.ReCaptchaEnterpriseProvider(APPCHECK_KEY), isTokenAutoRefreshEnabled: true })).catch(() => {}); };
 appCheck(app);
 const db = getFirestore(app);
+if (window.SB) SB.sync(async () => { const s = await getDoc(doc(db, 'config', 'brand')); return s.exists() ? s.data() : null; });
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
