@@ -387,6 +387,7 @@ onAuthStateChanged(auth, async (user) => {
     capDoc = { id: c.id, ...c.data() };
     restName = rs && rs.exists() ? (rs.data().name || '') : '';
     enterApp();
+    if (window.SB) SB.welcome({ app: 'captain', name: (capDoc && capDoc.name) || (me && me.name) || '', rest: restName });   // شاشة الترحيب
     unsubs.push(onSnapshot(doc(db, 'restaurants', restaurantId), (r) => { if (svcOff(r)) deny(SVC_OFF); }, () => {}));
   } catch (e) {
     console.error(e);

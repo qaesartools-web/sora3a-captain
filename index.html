@@ -113,6 +113,7 @@ if (!/^[A-Za-z0-9]{10,40}$/.test(orderId)) {
   onSnapshot(doc(db, 'tracking', orderId), (snap) => {
     if (!snap.exists()) { msg('❓', 'الطلب غير موجود', 'قد يكون الرابط قديماً — تواصل مع المطعم'); return; }
     render(snap.data());
+    if (window.SB) SB.welcome({ app: 'tracking', name: '', rest: snap.data().restName || '', role: 'تتبع طلبك', ms: 1500 });
   }, () => msg('⚠️', 'تعذّر تحميل الطلب', 'تحقق من الإنترنت وأعد المحاولة'));
 }
 
