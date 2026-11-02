@@ -14,7 +14,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Reem+Kufi:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="brand.css?v=2">
+<link rel="stylesheet" href="brand.css?v=3">
 <style>
 :root{
   --bg:#f3f7f4;--panel:#fff;--panel2:#eef3ef;--line:#e1e8e3;--text:#16241c;--muted:#6b7d72;
@@ -165,7 +165,7 @@ main{max-width:640px;margin:0 auto;padding:14px 14px 0;}
 <button id="installBtn" class="hidden">📲 تثبيت التطبيق</button>
 
 <div id="splash"><img class="logo-mark" src="logo.svg" alt="شعار سرعة"><div class="brand">سرعة</div><div class="brand-sub">تطبيق الكابتن</div></div>
-<script src="brand.js?v=2"></script>
+<script src="brand.js?v=3"></script>
 <script>window.SB && SB.mount('captain')</script>
 
 <!-- LOGIN -->
@@ -285,7 +285,7 @@ const app = initializeApp(firebaseConfig, 'sora3a-captain');
 // App Check (reCAPTCHA Enterprise / Fraud Defense): السيرفر يعرف إن الطلب جاي من تطبيقاتنا الحقيقية (بدون ما يحس المستخدم) — على الموقع بس، مو بالتجارب المحلية
 const APPCHECK_KEY = '6LdWa_0tAAAAAEWXuLi8yrdnPjQmx-r-ayyoZ07h';
 const appCheck = (a) => { if (!/\.github\.io$/.test(location.hostname)) return; if (!document.getElementById('acHide')) document.head.insertAdjacentHTML('beforeend', '<style id="acHide">.grecaptcha-badge{visibility:hidden}</style>');
-  import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-check.js').then((m) => { const ac = m.initializeAppCheck(a, { provider: new m.ReCaptchaEnterpriseProvider(APPCHECK_KEY), isTokenAutoRefreshEnabled: true }); m.getToken(ac).then(() => { window.__acState = window.__acState || 'ok'; }, (e) => { window.__acState = 'err:' + String((e && (e.code || e.message)) || e).slice(0, 80); }); }).catch(() => {}); };
+  import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-check.js').then((m) => { const ac = m.initializeAppCheck(a, { provider: new m.ReCaptchaEnterpriseProvider(APPCHECK_KEY), isTokenAutoRefreshEnabled: true }); m.getToken(ac).then(() => { window.__acState = window.__acState || 'ok'; }, (e) => { window.__acState = 'err:' + String((e && ((e.code || '') + ' ' + (e.message || ''))) || e).replace(/\s+/g, ' ').slice(0, 95); }); }).catch(() => {}); };
 appCheck(app);
 const auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] });
 const db = getFirestore(app);
