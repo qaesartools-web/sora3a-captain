@@ -14,7 +14,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Reem+Kufi:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="brand.css">
+<link rel="stylesheet" href="brand.css?v=2">
 <style>
 :root{
   --bg:#f3f7f4;--panel:#fff;--panel2:#eef3ef;--line:#e1e8e3;--text:#16241c;--muted:#6b7d72;
@@ -165,7 +165,7 @@ main{max-width:640px;margin:0 auto;padding:14px 14px 0;}
 <button id="installBtn" class="hidden">📲 تثبيت التطبيق</button>
 
 <div id="splash"><img class="logo-mark" src="logo.svg" alt="شعار سرعة"><div class="brand">سرعة</div><div class="brand-sub">تطبيق الكابتن</div></div>
-<script src="brand.js"></script>
+<script src="brand.js?v=2"></script>
 <script>window.SB && SB.mount('captain')</script>
 
 <!-- LOGIN -->
@@ -387,8 +387,8 @@ onAuthStateChanged(auth, async (user) => {
     capDoc = { id: c.id, ...c.data() };
     restName = rs && rs.exists() ? (rs.data().name || '') : '';
     enterApp();
-    if (window.SB) SB.health((hid, hd) => setDoc(doc(db, 'devHealth', hid), hd), { rid: restaurantId || '', rest: restName, who: (capDoc && capDoc.name) || '' });   // صحة الجهاز
-    if (window.SB) SB.welcome({ app: 'captain', name: (capDoc && capDoc.name) || (me && me.name) || '', rest: restName });   // شاشة الترحيب
+    if (window.SB && SB.health) SB.health((hid, hd) => setDoc(doc(db, 'devHealth', hid), hd), { rid: restaurantId || '', rest: restName, who: (capDoc && capDoc.name) || '' });   // صحة الجهاز
+    if (window.SB && SB.welcome) SB.welcome({ app: 'captain', name: (capDoc && capDoc.name) || (me && me.name) || '', rest: restName });   // شاشة الترحيب
     unsubs.push(onSnapshot(doc(db, 'restaurants', restaurantId), (r) => { if (svcOff(r)) deny(SVC_OFF); }, () => {}));
   } catch (e) {
     console.error(e);
