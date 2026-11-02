@@ -1,5 +1,5 @@
 // سرعة — الكابتن: Service Worker (تخزين مؤقت + إشعارات الخلفية)
-const CACHE_VERSION = 'captain-v25';
+const CACHE_VERSION = 'captain-v26';
 const CACHE_NAME = `app-cache-${CACHE_VERSION}`;
 const SCOPE = '/sora3a-captain/';
 const PRECACHE = [SCOPE, SCOPE + 'captain.html', SCOPE + 'brand.js?v=3', SCOPE + 'brand.css?v=3', SCOPE + 'manifest.json', SCOPE + 'icon-192.png'];
