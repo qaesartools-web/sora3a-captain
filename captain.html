@@ -165,7 +165,7 @@ main{max-width:640px;margin:0 auto;padding:14px 14px 0;}
 <button id="installBtn" class="hidden">📲 تثبيت التطبيق</button>
 
 <div id="splash"><img class="logo-mark" src="logo.svg" alt="شعار سرعة"><div class="brand">سرعة</div><div class="brand-sub">تطبيق الكابتن</div></div>
-<script src="brand.js?v=4"></script>
+<script src="brand.js?v=5"></script>
 <script>window.SB && SB.mount('captain')</script>
 
 <!-- LOGIN -->
@@ -375,12 +375,28 @@ $('password').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogi
 const SVC_OFF = '⛔ خدمة الكابتن متوقفة لهذا المطعم حالياً. تواصل مع الإدارة.';
 async function deny(msg) { await signOut(auth); loginErr(msg); screen('login'); }
 
-onAuthStateChanged(auth, async (user) => {
-  stopAll();
+// «اللحظة اللي بين» (الواي فاي أو البيانات متصلة والنت ما يجاوب) أو بدون نت: الكابتن ما يطلع من حسابه (چان يرجع يكتب الرمز) —
+//  نكتب «ننتظر الإنترنت» ونفتح وحدنا أول ما يجاوب السيرفر. ما ننتظر السيرفر أكثر من ٨ ثواني،
+//  وأول مرة أبد إذا فحص الحساب لگه النت عالق (__netStuckAt من brand.js)
+const isNet = (e) => !!e && (e.code === 'unavailable' || e.code === 'deadline-exceeded' || /offline|network|server slow/i.test(e.message || ''));
+const quick = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error('offline: server slow'), { code: 'unavailable' })), ms))]);
+let waitT = 0, waitUser = null, tries = 0;
+function netWait(user) {
+  waitUser = user; loginErr('📶 النت ضعيف أو مقطوع — التطبيق يفتح وحده أول ما يرجع (ما تحتاج تسجّل دخول من جديد)'); screen('login');
+  clearTimeout(waitT); waitT = setTimeout(() => { if (waitUser === user && auth.currentUser === user) openAs(user); }, window.__capRetryMs || 10000);
+}
+window.addEventListener('online', () => { if (waitUser && auth.currentUser === waitUser) { clearTimeout(waitT); openAs(waitUser); } });
+onAuthStateChanged(auth, (user) => {
+  stopAll(); clearTimeout(waitT); waitUser = null; tries = 0;
   if (!user) { me = null; capDoc = null; screen('login'); resetLoginBtn(); return; }
+  openAs(user);
+});
+async function openAs(user) {
+  const ms = !tries++ && Date.now() - (window.__netStuckAt || 0) < 20000 ? 0 : 8000;
   try {
     // الصلاحية من users/{uid} فقط — لا بحث بالإيميل ولا كتابة ذاتية للدور
-    const u = await getDoc(doc(db, 'users', user.uid));
+    const u = await quick(getDoc(doc(db, 'users', user.uid)), ms);
+    if (auth.currentUser !== user) return;
     const d = u.exists() ? u.data() : null;
     // رقمنا وإيميلنا من البرج (config/brand) لشريط الهوية — مرة كل ٦ ساعات بالأكثر
     if (window.SB) SB.sync(async () => { const s = await getDoc(doc(db, 'config', 'brand')); return s.exists() ? s.data() : null; });
@@ -395,12 +411,14 @@ onAuthStateChanged(auth, async (user) => {
     }
     if (!captainId || !restaurantId) return deny('⚠️ حسابك يحتاج تحديث من الإدارة. تواصل مع المطعم.');
     // خدمة الكابتن يفتحها ويغلقها المدير الأعلى لكل مطعم
-    const rs = await getDoc(doc(db, 'restaurants', restaurantId)).catch(() => null);
+    const rs = await quick(getDoc(doc(db, 'restaurants', restaurantId)), 8000).catch((e) => { if (isNet(e)) throw e; return null; });
     // والبرج يشغّلها، وصاحب المطعم يكدر يوقفها ويرجّعها (svcOff)
     const svcOff = (r) => !!(r && r.exists() && ((r.data().features && r.data().features.captain === false) || (r.data().svcOff && r.data().svcOff.captain === true)));
     if (svcOff(rs)) return deny(SVC_OFF);
-    const c = await getDoc(doc(db, 'captains', captainId));
+    const c = await quick(getDoc(doc(db, 'captains', captainId)), 8000);
+    if (auth.currentUser !== user) return;
     if (!c.exists() || c.data().userId !== user.uid) return deny('❌ حساب الكابتن محذوف');
+    clearTimeout(waitT); waitUser = null; loginErr('');
     me = { uid: user.uid, ...(d || {}), role: 'captain', captainId, restaurantId };
     capDoc = { id: c.id, ...c.data() };
     restName = rs && rs.exists() ? (rs.data().name || '') : '';
@@ -410,10 +428,12 @@ onAuthStateChanged(auth, async (user) => {
     if (window.SB && SB.welcome) SB.welcome({ app: 'captain', name: (capDoc && capDoc.name) || (me && me.name) || '', rest: restName });   // شاشة الترحيب
     unsubs.push(onSnapshot(doc(db, 'restaurants', restaurantId), (r) => { if (svcOff(r)) deny(SVC_OFF); }, () => {}));
   } catch (e) {
+    if (auth.currentUser !== user) return;
+    if (isNet(e)) { console.warn('captain open: waiting for the server', e && e.code); netWait(user); return; }
     console.error(e);
     deny('❌ تعذّر تحميل الحساب، حاول مجدداً');
   }
-});
+}
 
 function stopAll() {
   unsubs.forEach((u) => u && u()); unsubs = [];
