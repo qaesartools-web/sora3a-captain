@@ -1,8 +1,8 @@
 // سرعة — الكابتن: Service Worker (تخزين مؤقت + إشعارات الخلفية)
-const CACHE_VERSION = 'captain-v28';
+const CACHE_VERSION = 'captain-v29';
 const CACHE_NAME = `app-cache-${CACHE_VERSION}`;
 const SCOPE = '/sora3a-captain/';
-const PRECACHE = [SCOPE, SCOPE + 'captain.html', SCOPE + 'brand.js?v=4', SCOPE + 'brand.css?v=4', SCOPE + 'manifest.json', SCOPE + 'icon-192.png'];
+const PRECACHE = [SCOPE, SCOPE + 'captain.html', SCOPE + 'brand.js?v=5', SCOPE + 'brand.css?v=4', SCOPE + 'manifest.json', SCOPE + 'icon-192.png'];
 
 // ── إشعارات Firebase بالخلفية (التطبيق مغلق) ──
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
